@@ -1,0 +1,88 @@
+# Three-platform packaging for the FUI desktop shell.
+#
+# Split from the repository's own CI on purpose: this workflow produces
+# installers, and its slowest step (the Rust build) has nothing to do with the
+# harness gates.
+#
+# The harness must be built before the shell is packaged. The desktop app
+# spawns a `dsh` process rather than embedding one, so the bundle has to carry
+# a Node runtime and the built harness as resources — see the sidecar note in
+# desktop/README.md. That resource wiring is NOT yet implemented; until it is,
+# the artifacts this workflow produces run only where a repository checkout and
+# pnpm are already present.
+
+name: desktop-release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'desktop-v*'
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # WebKitGTK is Tauri's Linux webview; the AppIndicator library backs the
+      # tray icon. Neither ships on the runner image.
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the engines range in the root package.json.
+          node-version: 22.21.1
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install workspace dependencies
+        # Large binary packages (playwright, node-pty) time out on the default
+        # budget often enough to be worth raising here rather than retrying.
+        run: pnpm install --frozen-lockfile --fetch-timeout=900000
+
+      - name: Build the harness
+        run: pnpm run build
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop
+
+      - name: Package the desktop shell
+        working-directory: desktop
+        run: cargo tauri build --target ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.target }}
+          path: |
+            desktop/target/${{ matrix.target }}/release/bundle/**/*.dmg
+            desktop/target/${{ matrix.target }}/release/bundle/**/*.app
+            desktop/target/${{ matrix.target }}/release/bundle/**/*.AppImage
+            desktop/target/${{ matrix.target }}/release/bundle/**/*.deb
+            desktop/target/${{ matrix.target }}/release/bundle/**/*.msi
+            desktop/target/${{ matrix.target }}/release/bundle/**/*.exe
+          if-no-files-found: error

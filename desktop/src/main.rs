@@ -201,9 +201,9 @@ extern "C" fn on_terminating_signal(signal: i32) {
 #[cfg(unix)]
 fn install_signal_handlers() {
     unsafe {
-        libc::signal(libc::SIGTERM, on_terminating_signal as libc::sighandler_t);
-        libc::signal(libc::SIGINT, on_terminating_signal as libc::sighandler_t);
-        libc::signal(libc::SIGHUP, on_terminating_signal as libc::sighandler_t);
+        libc::signal(libc::SIGTERM, on_terminating_signal as *const () as libc::sighandler_t);
+        libc::signal(libc::SIGINT, on_terminating_signal as *const () as libc::sighandler_t);
+        libc::signal(libc::SIGHUP, on_terminating_signal as *const () as libc::sighandler_t);
     }
 }
 
