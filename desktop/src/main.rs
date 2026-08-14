@@ -14,7 +14,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
@@ -117,48 +117,105 @@ const MIN_NODE: (u32, u32) = (22, 19);
 /// `node` is too old.
 const NODE_BIN_OVERRIDE: &str = "DEEPSEEK_FUI_NODE_BIN";
 
-/// PATH for the backend, with the override directory in front when set.
-fn backend_path() -> Option<String> {
-    let dir = std::env::var(NODE_BIN_OVERRIDE).ok()?;
+/// PATH for the backend, with `dir` in front.
+fn path_with(dir: &Path) -> String {
     let rest = std::env::var("PATH").unwrap_or_default();
-    Some(format!("{dir}:{rest}"))
+    format!("{}:{rest}", dir.display())
 }
 
-/// Verify the `node` the backend will inherit can actually run the harness.
-///
-/// Worth a pre-flight rather than letting the boot fail: below this version
-/// `node:zlib` has no `createZstdDecompress`, and the harness dies deep inside
-/// plugin loading with a module-export error that says nothing about Node
-/// versions. PATH is what decides this, and a GUI launch has a different PATH
-/// from the terminal the developer tested in.
-fn check_node_version() -> Result<(), String> {
-    let mut probe = Command::new("node");
-    probe.arg("-v");
-    if let Some(path) = backend_path() {
-        probe.env("PATH", path);
-    }
-    let out = probe
-        .output()
-        .map_err(|e| format!("could not run `node` ({e}). Is it on PATH?"))?;
+/// Version reported by a `node` binary, as (major, minor).
+fn node_version(node: &Path) -> Option<(u32, u32)> {
+    let out = Command::new(node).arg("-v").output().ok()?;
     let text = String::from_utf8_lossy(&out.stdout);
-    let version = text.trim().trim_start_matches('v');
-    let mut parts = version.split('.').map(str::parse::<u32>);
-    let (Some(Ok(major)), Some(Ok(minor))) = (parts.next(), parts.next()) else {
-        return Err(format!("could not read a version out of `node -v` ({version})"));
-    };
-    let ok = major > 22 || (major == MIN_NODE.0 && minor >= MIN_NODE.1);
-    if ok {
-        return Ok(());
+    let mut parts = text.trim().trim_start_matches('v').split('.');
+    let major = parts.next()?.parse().ok()?;
+    let minor = parts.next()?.parse().ok()?;
+    Some((major, minor))
+}
+
+/// Whether a version can run the harness.
+fn runs_harness((major, minor): (u32, u32)) -> bool {
+    major > 22 || (major == MIN_NODE.0 && minor >= MIN_NODE.1)
+}
+
+/// Directories that hold one subdirectory per installed Node version.
+fn version_manager_roots() -> Vec<PathBuf> {
+    let home = PathBuf::from(std::env::var("HOME").unwrap_or_default());
+    let mut roots = vec![
+        home.join(".nvm/versions/node"),
+        home.join(".volta/tools/image/node"),
+        home.join(".local/share/fnm/node-versions"),
+        home.join("Library/Application Support/fnm/node-versions"),
+    ];
+    // Homebrew's nvm keeps its versions under the formula's Cellar directory,
+    // one level deeper than the layout above.
+    if let Ok(entries) = std::fs::read_dir("/opt/homebrew/Cellar/nvm") {
+        roots.extend(entries.flatten().map(|e| e.path().join("versions/node")));
     }
-    Err(format!(
-        "node {version} is too old for the harness, which needs ^{}.{}.0 or >=24 \
-         (below that, node:zlib has no createZstdDecompress and plugin loading dies \
-         with an unrelated-looking module error).\n\
-         The PATH this app inherits decides which node is used. From a checkout:\n\
-         source .scratch/deepseek-fui-desktop/env.sh\n\
-         Or point {NODE_BIN_OVERRIDE} at a directory holding a new enough node.",
-        MIN_NODE.0, MIN_NODE.1,
-    ))
+    roots
+}
+
+/// Every `node` binary the well-known version managers have installed.
+fn installed_node_binaries() -> Vec<PathBuf> {
+    let mut found = Vec::new();
+    for root in version_manager_roots() {
+        let Ok(entries) = std::fs::read_dir(&root) else { continue };
+        for entry in entries.flatten() {
+            // nvm and volta put the binary in <version>/bin; fnm adds an
+            // `installation` level.
+            for suffix in ["bin/node", "installation/bin/node"] {
+                let candidate = entry.path().join(suffix);
+                if candidate.is_file() {
+                    found.push(candidate);
+                }
+            }
+        }
+    }
+    found
+}
+
+/// Decide which directory to put ahead of the backend's PATH, if any.
+///
+/// Order: an explicit override, then the ambient `node` if it is new enough,
+/// then the newest suitable one any version manager on this machine has
+/// installed. That last step is the difference between "run it" and "work out
+/// which node to point it at first" — the right runtime is usually already
+/// present, just not first on PATH.
+fn resolve_node_bin() -> Result<Option<PathBuf>, String> {
+    if let Ok(dir) = std::env::var(NODE_BIN_OVERRIDE) {
+        let dir = PathBuf::from(dir);
+        return match node_version(&dir.join("node")) {
+            Some(version) if runs_harness(version) => Ok(Some(dir)),
+            Some((major, minor)) => Err(format!(
+                "{NODE_BIN_OVERRIDE} points at node {major}.{minor}, which is older than the \
+                 required ^{}.{}.0 || >=24",
+                MIN_NODE.0, MIN_NODE.1,
+            )),
+            None => Err(format!("{NODE_BIN_OVERRIDE} does not contain a runnable node")),
+        };
+    }
+
+    if node_version(Path::new("node")).is_some_and(runs_harness) {
+        return Ok(None);
+    }
+
+    let best = installed_node_binaries()
+        .into_iter()
+        .filter_map(|node| node_version(&node).map(|version| (version, node)))
+        .filter(|&(version, _)| runs_harness(version))
+        .max_by_key(|&(version, _)| version);
+
+    match best {
+        Some((_, node)) => Ok(Some(node.parent().unwrap().to_path_buf())),
+        None => Err(format!(
+            "no node new enough to run the harness was found. It needs ^{}.{}.0 || >=24, because \
+             below that node:zlib has no createZstdDecompress and plugin loading dies with an \
+             unrelated-looking module error.\n\
+             Looked at the node on PATH and at every version nvm, fnm, and volta have installed.\n\
+             Install one, or point {NODE_BIN_OVERRIDE} at a directory holding it.",
+            MIN_NODE.0, MIN_NODE.1,
+        )),
+    }
 }
 
 /// Repository root, resolved from this crate's location.
@@ -171,13 +228,14 @@ fn repository_root() -> PathBuf {
 /// Returns the URL, or a message fit to show a user: this runs before there is
 /// any window worth calling a UI, so a failure here has to explain itself.
 fn start_backend(backend: &Backend) -> Result<String, String> {
-    check_node_version()?;
+    let node_bin = resolve_node_bin()?;
     reap_previous_backend();
 
     let root = repository_root();
     let mut command = Command::new("pnpm");
-    if let Some(path) = backend_path() {
-        command.env("PATH", path);
+    if let Some(dir) = node_bin.as_deref() {
+        eprintln!("deepseek-fui: using node from {}", dir.display());
+        command.env("PATH", path_with(dir));
     }
     let mut child = command
         .args(["dsh", "--profile", "fui", "--port", "0"])

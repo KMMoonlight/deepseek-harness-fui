@@ -30,29 +30,21 @@ Observed behaviour worth knowing: after a SIGKILL the backend *often* dies on it
 
 ## Running it
 
-Build the repository once (`pnpm run build`), then:
+Build the repository once (`pnpm run build`), then, from the repository root:
 
 ```sh
-cargo run
+cargo run --manifest-path desktop/Cargo.toml
 ```
 
-That is the whole thing — the shell starts the backend itself.
+That is the whole thing. The shell starts the backend, finds a Node that can run it, waits for the URL, and points the window at it.
 
-### The Node version matters, and PATH decides it
+### How the Node is chosen
 
-The backend is spawned as `pnpm dsh --profile fui --port 0`, inheriting this process's `PATH`. The harness needs Node `^22.19.0 || >=24`: below that, `node:zlib` has no `createZstdDecompress` and plugin loading dies with a module-export error that mentions nothing about Node versions. The shell therefore checks the version up front and refuses with an actionable message rather than letting that happen.
+The harness needs Node `^22.19.0 || >=24`: below that, `node:zlib` has no `createZstdDecompress` and plugin loading dies with a module-export error mentioning nothing about Node versions. The `node` first on `PATH` is frequently not the one that qualifies — which is a property of developer machines, not a mistake anyone made, so the shell resolves it rather than asking.
 
-Two ways to give it a suitable Node:
+Resolution order: `DEEPSEEK_FUI_NODE_BIN` if set, then the ambient `node` if it is new enough, then the newest qualifying version any of nvm, fnm, or volta has installed. The chosen directory is printed on startup. Only if none of those turns one up does it refuse, and then it says where it looked.
 
-```sh
-source ../.scratch/deepseek-fui-desktop/env.sh
-```
-
-```sh
-DEEPSEEK_FUI_NODE_BIN=/path/to/node/bin cargo run
-```
-
-`DEEPSEEK_FUI_NODE_BIN` is prepended to the backend's `PATH`. It is also the seam a packaged build will use: point it at the bundled Node and the shell stops depending on the launching environment entirely.
+`DEEPSEEK_FUI_NODE_BIN` is also the seam a packaged build will use: point it at the bundled Node and the shell stops depending on the launching environment.
 
 ### When the backend fails to start
 
