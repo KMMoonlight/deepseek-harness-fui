@@ -361,6 +361,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-fui':
         specifier: workspace:^
         version: link:../../packages/client/ui-fui
+      '@deepseek-ai/dsh-client-ui-fui-surface':
+        specifier: workspace:^
+        version: link:../../packages/client/ui-fui-surface
       '@deepseek-ai/dsh-client-web':
         specifier: workspace:^
         version: link:../../packages/client/web
@@ -1233,6 +1236,9 @@ importers:
 
   packages/bundle/fui-app:
     dependencies:
+      '@deepseek-ai/dsh-client-ui-fui-surface':
+        specifier: workspace:^
+        version: link:../../client/ui-fui-surface
       '@deepseek-ai/dsh-web-app':
         specifier: workspace:^
         version: link:../web-app
@@ -2042,6 +2048,15 @@ importers:
       '@types/react-dom':
         specifier: ~18.3.0
         version: 18.3.7(@types/react@18.3.31)
+
+  packages/client/ui-fui-surface:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-goal:
     devDependencies:

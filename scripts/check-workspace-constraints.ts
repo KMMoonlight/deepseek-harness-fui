@@ -140,6 +140,7 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // Vendored f-ui owns its `--fui-*` token sheet, published beside the lib for
   // the application-layer Tailwind build to import.
   '@deepseek-ai/dsh-client-ui-fui': ['lib/styles'],
+  '@deepseek-ai/dsh-client-ui-fui-surface': ['lib/styles'],
   // The Python runtime uses a distinct closed-resolution bin; the public CLI
   // keeps config-owned bare-package resolution through lib/bin.js.
   '@deepseek-ai/dsh-sdk-jsonrpc-demo': ['lib/packaged-bin.js'],

@@ -1,6 +1,6 @@
 {
-  "name": "@deepseek-ai/dsh-fui-app",
-  "description": "The FUI surface bundle: a patch layer over dsh-web-app that swaps the browser roster's presentation rows for their f-ui counterparts",
+  "name": "@deepseek-ai/dsh-client-ui-fui-surface",
+  "description": "The FUI surface claim: marks the document as the FUI surface and repoints ui-theme's --dsw-alias-* layer at f-ui's --fui-* tokens",
   "version": "0.1.0-rc.5",
   "publishConfig": {
     "access": "public"
@@ -8,7 +8,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
-    "directory": "packages/bundle/fui-app"
+    "directory": "packages/client/ui-fui-surface"
   },
   "type": "module",
   "main": "lib/index.js",
@@ -22,26 +22,28 @@
       "types": "./lib/types/invariant.d.ts",
       "default": "./lib/invariant.js"
     },
-    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./styles/*": "./lib/styles/*",
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
     "lib/invariant.js",
-    "cordis.patch.yml",
+    "lib/client.js",
+    "lib/styles",
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",
   "dsh": {
-    "bundle": {
-      "patch": "./cordis.patch.yml"
+    "client": {
+      "inject": [],
+      "platform": "web",
+      "immediately": true
     }
-  },
-  "dependencies": {
-    "@deepseek-ai/dsh-client-ui-fui-surface": "workspace:^",
-    "@deepseek-ai/dsh-web-app": "workspace:^",
-    "@deepseek-ai/schemastery": "workspace:^"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",

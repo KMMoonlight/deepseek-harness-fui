@@ -175,6 +175,8 @@
       "@deepseek-ai/dsh-client-ui-attachment": ["./packages/client/ui-attachment/src"],
       "@deepseek-ai/dsh-client-ui-primitives": ["./packages/client/ui-primitives/src"],
       "@deepseek-ai/dsh-client-ui-fui": ["./packages/client/ui-fui/src"],
+      "@deepseek-ai/dsh-client-ui-fui-surface": ["./packages/client/ui-fui-surface/src"],
+      "@deepseek-ai/dsh-client-ui-fui-surface/client": ["./packages/client/ui-fui-surface/src/client/index.ts"],
       "@deepseek-ai/dsh-client-schema-form": ["./packages/client/schema-form/src"],
       "@deepseek-ai/dsh-client-schema-form/invariant": ["./packages/client/schema-form/src/invariant.ts"],
       "@deepseek-ai/dsh-client-web-react": ["./packages/client/web-react/src"],

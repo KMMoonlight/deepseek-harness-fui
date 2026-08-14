@@ -52,6 +52,7 @@
     { "path": "./packages/client/ui-attachment" },
     { "path": "./packages/client/ui-primitives" },
     { "path": "./packages/client/ui-fui" },
+    { "path": "./packages/client/ui-fui-surface" },
     { "path": "./packages/client/web-react" },
     { "path": "./packages/client/modules" },
     { "path": "./packages/client/hmr" },

@@ -1,0 +1,142 @@
+/*
+ * The FUI surface's alias bridge.
+ *
+ * ui-theme owns the `--dsw-alias-*` semantic layer and every feature package
+ * consumes it, never a literal colour. f-ui owns an equivalent `--fui-*` layer
+ * under a non-colliding prefix. Repointing one at the other is therefore the
+ * whole skin: the thirty-odd stock feature packages adopt the FUI palette
+ * without a single component edit.
+ *
+ * Scoped to `body[data-fui-surface]`, which this package's browser half sets,
+ * because the stock and FUI surfaces are served from one build. The stock
+ * surface never carries the attribute and so never sees any of this.
+ *
+ * Mapping rules, so additions stay consistent:
+ *   - depth      bg-base is the ground; layers 1..3 climb toward the panel
+ *                colour. Overlays and floating surfaces take the opaque
+ *                `panel-solid`, never the translucent `panel-bg`, which would
+ *                otherwise composite against whatever sits beneath.
+ *   - rules      border l1..l4 climb the line ramp faint -> soft -> line ->
+ *                line-strong.
+ *   - text       primary is the full text colour; every dimmed, secondary,
+ *                tertiary, and caption role collapses onto text-dim, since
+ *                f-ui expresses hierarchy with two steps rather than four.
+ *   - status     error->danger, warn->warn, success->ok, business->accent,
+ *                each using the tone's own -soft/-line derivations.
+ */
+
+body[data-fui-surface] {
+  /* ── ground and layers ─────────────────────────────────────────────── */
+  --dsw-alias-bg-base: var(--fui-bg);
+  --dsw-alias-bg-layer-1: var(--fui-panel-solid);
+  --dsw-alias-bg-layer-2: var(--fui-panel-solid);
+  --dsw-alias-bg-layer-3: var(--fui-panel-bg);
+  --dsw-alias-bg-overlay: var(--fui-panel-solid);
+  --dsw-alias-bg-module-platform: var(--fui-panel-solid);
+  --dsw-alias-bg-multi-select: var(--fui-primary-soft);
+  --dsw-alias-bg-skeleton: var(--fui-line-faint);
+  --dsw-alias-bg-mask-1: rgba(6, 12, 24, 0.55);
+  --dsw-alias-bg-mask-2: rgba(6, 12, 24, 0.72);
+  --dsw-alias-bg-mask-3: rgba(6, 12, 24, 0.88);
+  --dsw-alias-bg-mask-drop: rgba(6, 12, 24, 0.72);
+  --dsw-alias-bg-mask-photo: rgba(6, 12, 24, 0.4);
+
+  /* ── rules ─────────────────────────────────────────────────────────── */
+  --dsw-alias-border-l1: var(--fui-line-faint);
+  --dsw-alias-border-l2: var(--fui-line-soft);
+  --dsw-alias-border-l2-darkmode-thin: var(--fui-line-soft);
+  --dsw-alias-border-l3: var(--fui-line);
+  --dsw-alias-border-l4: var(--fui-line-strong);
+  --dsw-alias-border-inverted: var(--fui-bg);
+  --dsw-alias-border-inverted2: var(--fui-bg);
+
+  /* ── text ──────────────────────────────────────────────────────────── */
+  --dsw-alias-label-primary: var(--fui-text);
+  --dsw-alias-label-primary-bluish: var(--fui-text);
+  --dsw-alias-label-primary-dimmed: var(--fui-text-dim);
+  --dsw-alias-label-primary-foreground: var(--fui-text);
+  --dsw-alias-label-primary-inverted: var(--fui-bg);
+  --dsw-alias-label-secondary: var(--fui-text-dim);
+  --dsw-alias-label-tertiary: var(--fui-text-dim);
+  --dsw-alias-label-dimmed: var(--fui-text-dim);
+  --dsw-alias-label-caption: var(--fui-text-dim);
+
+  /* ── brand ─────────────────────────────────────────────────────────── */
+  --dsw-alias-brand-primary: var(--fui-primary);
+  --dsw-alias-brand-primary-invert: var(--fui-bg);
+  --dsw-alias-brand-primary-new-colorprimary-new-color: var(--fui-primary);
+  --dsw-alias-brand-text: var(--fui-primary);
+
+  /* ── buttons ───────────────────────────────────────────────────────── */
+  --dsw-alias-button-primary-fill: var(--fui-primary);
+  --dsw-alias-button-primary-hover: var(--fui-primary-line-strong);
+  --dsw-alias-button-primary-dimmed: var(--fui-primary-line);
+  --dsw-alias-button-contrast-fill: var(--fui-panel-solid);
+  --dsw-alias-button-elevated-fill: var(--fui-panel-solid);
+  --dsw-alias-button-floating-fill: var(--fui-panel-solid);
+  --dsw-alias-button-floating-hover: var(--fui-line-ghost);
+  --dsw-alias-button-ghost-active-border: var(--fui-line);
+  --dsw-alias-button-ghost-active-fill: var(--fui-line-ghost);
+  --dsw-alias-button-ghost-active-hover: var(--fui-line-faint);
+  --dsw-alias-button-info-fill: var(--fui-panel-solid);
+  --dsw-alias-button-info-hover: var(--fui-line-ghost);
+  --dsw-alias-button-tool-bar-fill: var(--fui-panel-solid);
+  --dsw-alias-button-tool-bar-fill-invisible: transparent;
+  --dsw-alias-button-tool-bar-hover: var(--fui-line-ghost);
+
+  /* ── interactive ───────────────────────────────────────────────────── */
+  --dsw-alias-interactive-bg-hover: var(--fui-line-ghost);
+  --dsw-alias-interactive-bg-hover-solid: var(--fui-panel-solid);
+  --dsw-alias-interactive-bg-hover-accent: var(--fui-accent-soft);
+  --dsw-alias-interactive-bg-hover-danger: var(--fui-danger-soft);
+  --dsw-alias-interactive-bg-active: var(--fui-primary-soft);
+
+  /* ── status ────────────────────────────────────────────────────────── */
+  --dsw-alias-state-error-primary: var(--fui-danger);
+  --dsw-alias-state-error-secondary: var(--fui-danger-soft);
+  --dsw-alias-state-warn-primary: var(--fui-warn);
+  --dsw-alias-state-warn-secondary: var(--fui-warn-soft);
+  --dsw-alias-state-warn-tertiary: var(--fui-warn-line);
+  --dsw-alias-state-warn-label: var(--fui-warn);
+  --dsw-alias-state-success-primary: var(--fui-ok);
+  --dsw-alias-state-success-secondary: var(--fui-ok-soft);
+  --dsw-alias-state-success-tertiary: var(--fui-ok-line);
+  --dsw-alias-state-business-primary: var(--fui-accent);
+  --dsw-alias-state-business-tertiary: var(--fui-accent-line);
+
+  /* ── markdown ──────────────────────────────────────────────────────── */
+  --dsw-alias-markdown-code-block: var(--fui-panel-solid);
+  --dsw-alias-markdown-code-block-banner: var(--fui-line-faint);
+  --dsw-alias-markdown-inline-code: var(--fui-primary-soft);
+  --dsw-alias-markdown-code-segment-selected: var(--fui-primary-soft);
+  --dsw-alias-markdown-code-segment-unselected: var(--fui-line-faint);
+  --dsw-alias-markdown-citation: var(--fui-primary);
+  --dsw-alias-markdown-tag: var(--fui-accent);
+  --dsw-alias-markdown-placeholder: var(--fui-text-dim);
+
+  /* ── chrome ────────────────────────────────────────────────────────── */
+  --dsw-alias-scrollbar-bg-l1: var(--fui-line-soft);
+  --dsw-alias-scrollbar-bg-l2: var(--fui-line-faint);
+  --dsw-alias-scrollbar-hover-l1: var(--fui-line);
+  --dsw-alias-scrollbar-hover-l2: var(--fui-line-soft);
+  --dsw-alias-tooltip-bg: var(--fui-panel-solid);
+  --dsw-alias-toast-bg: var(--fui-panel-solid);
+
+  /* ── named surfaces ────────────────────────────────────────────────── */
+  /* A second token family beside the aliases: ui-theme names a handful of
+     concrete surfaces outright. They resolve straight to the light static
+     scale, so leaving them unmapped strands the sidebar and the composer as
+     white blocks on the FUI ground — visible immediately, which is how these
+     were found. */
+  --dsw-specific-sidebar-fill: var(--fui-bg);
+  --dsw-specific-sidebar-nav-item-hover: var(--fui-line-ghost);
+  --dsw-specific-sidebar-nav-item-active: var(--fui-primary-soft);
+  --dsw-specific-sidebar-nav-item-active-accent: var(--fui-primary-line);
+  --dsw-specific-input-major: var(--fui-panel-solid);
+  --dsw-specific-login-input: var(--fui-panel-solid);
+  --dsw-specific-menu: var(--fui-panel-solid);
+  --dsw-specific-selector: var(--fui-panel-solid);
+  --dsw-specific-bubble: var(--fui-primary-soft);
+  --dsw-specific-bubble-highlight: var(--fui-primary-line);
+  --dsw-specific-tip: var(--fui-panel-solid);
+}

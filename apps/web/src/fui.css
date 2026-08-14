@@ -36,5 +36,8 @@
 @import '@deepseek-ai/dsh-client-ui-fui/styles/fui.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
 
+/* The FUI surface's alias bridge; inert unless body carries data-fui-surface. */
+@import '@deepseek-ai/dsh-client-ui-fui-surface/styles/dsw-bridge.css';
+
 @source '../../../packages/client/ui-fui/src';
 @source '../src';

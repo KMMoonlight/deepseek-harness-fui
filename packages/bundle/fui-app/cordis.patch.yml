@@ -12,6 +12,14 @@
 # unchanged beside `dsh --profile fui`, which is what makes an A/B comparison
 # of the two surfaces possible during the skin work.
 
+# The FUI surface claim. Mounted only here, which is what keeps the shared
+# frontend build from re-skinning `dsh web`: the alias bridge it carries is
+# scoped to the document attribute this plugin sets, and the stock surface
+# never sets it.
+- insert:
+    - id: ui-fui-surface
+      name: '@deepseek-ai/dsh-client-ui-fui-surface'
+
 - id: system-prompt
   config:
     persona: >-
