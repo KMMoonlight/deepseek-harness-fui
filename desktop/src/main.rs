@@ -18,8 +18,9 @@ use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicI32, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
@@ -105,6 +106,61 @@ fn reap_previous_backend() {
     let _ = std::fs::remove_file(&path);
 }
 
+/// Lowest Node the harness runs on, from the root package.json engines range.
+const MIN_NODE: (u32, u32) = (22, 19);
+
+/// Env var naming a directory to put ahead of PATH for the backend.
+///
+/// The seam a packaged build will use: point it at the bundled Node and the
+/// shell stops depending on whatever the launching environment happens to
+/// have. In a checkout it is also the escape hatch when the developer's first
+/// `node` is too old.
+const NODE_BIN_OVERRIDE: &str = "DEEPSEEK_FUI_NODE_BIN";
+
+/// PATH for the backend, with the override directory in front when set.
+fn backend_path() -> Option<String> {
+    let dir = std::env::var(NODE_BIN_OVERRIDE).ok()?;
+    let rest = std::env::var("PATH").unwrap_or_default();
+    Some(format!("{dir}:{rest}"))
+}
+
+/// Verify the `node` the backend will inherit can actually run the harness.
+///
+/// Worth a pre-flight rather than letting the boot fail: below this version
+/// `node:zlib` has no `createZstdDecompress`, and the harness dies deep inside
+/// plugin loading with a module-export error that says nothing about Node
+/// versions. PATH is what decides this, and a GUI launch has a different PATH
+/// from the terminal the developer tested in.
+fn check_node_version() -> Result<(), String> {
+    let mut probe = Command::new("node");
+    probe.arg("-v");
+    if let Some(path) = backend_path() {
+        probe.env("PATH", path);
+    }
+    let out = probe
+        .output()
+        .map_err(|e| format!("could not run `node` ({e}). Is it on PATH?"))?;
+    let text = String::from_utf8_lossy(&out.stdout);
+    let version = text.trim().trim_start_matches('v');
+    let mut parts = version.split('.').map(str::parse::<u32>);
+    let (Some(Ok(major)), Some(Ok(minor))) = (parts.next(), parts.next()) else {
+        return Err(format!("could not read a version out of `node -v` ({version})"));
+    };
+    let ok = major > 22 || (major == MIN_NODE.0 && minor >= MIN_NODE.1);
+    if ok {
+        return Ok(());
+    }
+    Err(format!(
+        "node {version} is too old for the harness, which needs ^{}.{}.0 or >=24 \
+         (below that, node:zlib has no createZstdDecompress and plugin loading dies \
+         with an unrelated-looking module error).\n\
+         The PATH this app inherits decides which node is used. From a checkout:\n\
+         source .scratch/deepseek-fui-desktop/env.sh\n\
+         Or point {NODE_BIN_OVERRIDE} at a directory holding a new enough node.",
+        MIN_NODE.0, MIN_NODE.1,
+    ))
+}
+
 /// Repository root, resolved from this crate's location.
 fn repository_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()
@@ -115,10 +171,15 @@ fn repository_root() -> PathBuf {
 /// Returns the URL, or a message fit to show a user: this runs before there is
 /// any window worth calling a UI, so a failure here has to explain itself.
 fn start_backend(backend: &Backend) -> Result<String, String> {
+    check_node_version()?;
     reap_previous_backend();
 
     let root = repository_root();
-    let mut child = Command::new("pnpm")
+    let mut command = Command::new("pnpm");
+    if let Some(path) = backend_path() {
+        command.env("PATH", path);
+    }
+    let mut child = command
         .args(["dsh", "--profile", "fui", "--port", "0"])
         .current_dir(&root)
         // Own process group, so reap() can signal the whole `pnpm -> pnpm ->
@@ -134,7 +195,24 @@ fn start_backend(backend: &Backend) -> Result<String, String> {
     BACKEND_GROUP.store(child.id() as i32, Ordering::SeqCst);
 
     let stdout = child.stdout.take().ok_or("the harness produced no stdout")?;
+    let stderr = child.stderr.take().ok_or("the harness produced no stderr")?;
     *backend.0.lock().unwrap() = Some(child);
+
+    // Drain stderr, keeping a bounded tail. Draining is not optional: a piped
+    // stream nobody reads fills its buffer and blocks the writer. Keeping the
+    // tail is what makes a boot failure diagnosable — without it the only
+    // symptom is that no URL ever arrived.
+    let diagnostics: Arc<Mutex<VecDeque<String>>> = Arc::new(Mutex::new(VecDeque::new()));
+    let sink = Arc::clone(&diagnostics);
+    std::thread::spawn(move || {
+        for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+            let mut held = sink.lock().unwrap();
+            if held.len() == DIAGNOSTIC_LINES {
+                held.pop_front();
+            }
+            held.push_back(line);
+        }
+    });
 
     // The URL line is the harness's readiness signal: the web bundle prints it
     // only after its Loader tree settles, so a sibling row that failed to mount
@@ -154,12 +232,23 @@ fn start_backend(backend: &Backend) -> Result<String, String> {
         let _ = tx.send(Err("the harness exited before it was ready".into()));
     });
 
-    match rx.recv_timeout(READY_TIMEOUT) {
-        Ok(Ok(url)) => Ok(url),
-        Ok(Err(message)) => Err(message),
-        Err(_) => Err(format!("the harness did not become ready within {}s", READY_TIMEOUT.as_secs())),
-    }
+    let outcome = match rx.recv_timeout(READY_TIMEOUT) {
+        Ok(Ok(url)) => return Ok(url),
+        Ok(Err(message)) => message,
+        Err(_) => format!("the harness did not become ready within {}s", READY_TIMEOUT.as_secs()),
+    };
+    // Give the stderr drain a moment to catch the tail of a fast crash.
+    std::thread::sleep(Duration::from_millis(200));
+    let tail = diagnostics.lock().unwrap().iter().cloned().collect::<Vec<_>>();
+    Err(if tail.is_empty() {
+        outcome
+    } else {
+        format!("{outcome}\n\nLast output from the harness:\n{}", tail.join("\n"))
+    })
 }
+
+/// How many trailing stderr lines to keep for a failure report.
+const DIAGNOSTIC_LINES: usize = 40;
 
 /// `process_group(0)` where the platform has it, a no-op elsewhere.
 trait ProcessGroupCompat {
@@ -280,12 +369,12 @@ fn main() {
             let url = match start_backend(&backend) {
                 Ok(url) => url,
                 Err(message) => {
-                    // No window has been shown yet, so the dialog is the only
-                    // surface a user can be told on.
-                    tauri::async_runtime::block_on(async {
-                        eprintln!("deepseek-fui: {message}");
-                    });
-                    return Err(message.into());
+                    // Returning Err here makes Tauri panic inside a callback
+                    // that cannot unwind, so the operator gets an abort and a
+                    // Rust backtrace instead of the reason. Report and leave.
+                    eprintln!("deepseek-fui: {message}");
+                    app.state::<Backend>().reap();
+                    std::process::exit(1);
                 }
             };
             let window = app.get_webview_window("main").ok_or("main window missing")?;
