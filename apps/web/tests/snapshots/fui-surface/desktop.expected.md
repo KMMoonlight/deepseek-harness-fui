@@ -1,0 +1,37 @@
+- link "Skip to main content":
+  - /url: "#dsh-main-content"
+- banner: DSH // Agent console Session link Standby
+- button "New session"
+- button "Collapse sidebar":
+  - img
+- button "New session":
+  - img
+  - text: New Session
+- text: Workspaces
+- button "Search sessions":
+  - img
+- textbox "Search sessions..."
+- button "View options":
+  - img
+- button "Add workspace":
+  - img
+- tree "Sessions": No sessions yet
+- button "Settings":
+  - img
+  - text: Settings
+- main:
+  - text: DSH // SESSION TERMINAL Into the Unknown Preview 00 ◆
+  - button "Choose workspace":
+    - img
+    - text: Choose workspace
+    - img
+  - button "Standard mode":
+    - img
+    - text: Standard mode
+    - img
+  - textbox "Choose workspace":
+    - /placeholder: Choose a workspace to start
+  - button "Commands" [disabled]:
+    - img
+  - button "Send message" [disabled]
+- contentinfo: Profile / FUI Local workspace DEEPSEEK HARNESS

@@ -504,3 +504,74 @@
     transition: none;
   }
 }
+
+:global(body[data-fui-surface]) .sectionHeader {
+  border-radius: 0;
+  color: var(--fui-text-muted);
+  font-family: var(--fui-font);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .iconButton,
+:global(body[data-fui-surface]) .search,
+:global(body[data-fui-surface]) .searchButton,
+:global(body[data-fui-surface]) .clearButton {
+  border-radius: 0;
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .iconButton:hover,
+:global(body[data-fui-surface]) .searchButton:hover,
+:global(body[data-fui-surface]) .clearButton:hover {
+  color: var(--fui-primary);
+  background: var(--fui-primary-soft);
+}
+
+:global(body[data-fui-surface]) .searchExpanded {
+  border-color: var(--fui-line-strong);
+  border-radius: 0;
+  background: var(--fui-panel);
+}
+
+:global(body[data-fui-surface]) .searchExpanded:focus-within {
+  border-color: var(--fui-primary-line);
+}
+
+:global(body[data-fui-surface]) .searchInput {
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+:global(body[data-fui-surface]) .searchInput::placeholder,
+:global(body[data-fui-surface]) .searchStatus,
+:global(body[data-fui-surface]) .empty {
+  color: var(--fui-text-muted);
+}
+
+:global(body[data-fui-surface]) .fade {
+  background: linear-gradient(to bottom, transparent, var(--fui-panel-solid));
+}
+
+:global(body[data-fui-surface]) .sessionOverflowButton {
+  border-radius: 0;
+  color: var(--fui-text-muted);
+  font-family: var(--fui-font);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+:global(body[data-fui-surface]) .sessionOverflowButton:hover {
+  color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .renameInput {
+  border-color: var(--fui-line-strong);
+  border-radius: 0;
+  background: var(--fui-panel);
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}

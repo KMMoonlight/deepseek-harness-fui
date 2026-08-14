@@ -8,6 +8,8 @@ Shell self-sufficiency (web2 hard rule): the kernel value-imports no plugin pack
 
 `PLATFORM_MODULES` (src/platform.ts) is the single source of truth for shared modules: seed-table keys, tsdown client externals, and the Vite alias set are its projections.
 
+The table includes `@deepseek-ai/dsh-client-ui-fui` so runtime presentation plugins can consume the application-owned f-ui and React instances. Seeding the library provides module identity only; the host graph still decides whether an FUI plugin mounts.
+
 The optional override parameter `seams` forwards the module system's `loadBundle` transport override (`BootSeams`) for environments where external `<script>` execution cannot reach the page context; ordinary browser callers omit it.
 
 The shell owns browser-title projection. With a selected session carrying a durable title, it renders `<session title> — <existing HTML title>` and reacts to later title revisions; no selection or a selected untitled session preserves the existing title, and shell unmount restores it. The existing HTML title remains the configurable product suffix.

@@ -111,3 +111,55 @@
   line-height: 1.5;
   color: var(--dsw-alias-label-tertiary);
 }
+
+:global(body[data-fui-surface]) .field + .field {
+  border-top-style: dashed;
+  border-top-color: var(--fui-line-soft);
+}
+
+:global(body[data-fui-surface]) .label {
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}
+
+:global(body[data-fui-surface]) .badge,
+:global(body[data-fui-surface]) .badgeMuted {
+  border: 1px solid var(--fui-line);
+  border-radius: 0;
+  background: var(--fui-line-ghost);
+  color: var(--fui-text-dim);
+  font-family: var(--fui-font);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .reset {
+  color: var(--fui-text-dim);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .reset:hover:not(:disabled) {
+  color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .input,
+:global(body[data-fui-surface]) .inputInvalid {
+  border-color: var(--fui-line);
+  border-radius: 0;
+  background: var(--fui-bg);
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .input:focus-visible {
+  border-color: var(--fui-primary);
+  box-shadow: 0 0 0 1px var(--fui-primary-line);
+}
+
+:global(body[data-fui-surface]) .hint {
+  color: var(--fui-text-dim);
+}

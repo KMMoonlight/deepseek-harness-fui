@@ -8,6 +8,8 @@ Web 外壳内核：`new AppWebEntry(el, seams?).run()` 通过两阶段启动（w
 
 `PLATFORM_MODULES`（src/platform.ts）是共享模块接口的唯一真源：种子表 key、tsdown 客户端 external 和 vite alias 集都是它的投影。
 
+该表包含 `@deepseek-ai/dsh-client-ui-fui`，使运行时展示 plugin 能使用应用拥有的 f-ui 与 React 实例。提供该库只保证模块标识一致；是否挂载 FUI plugin 仍由主机图决定。
+
 可选的覆盖参数 `seams` 会为外部 `<script>` 执行无法到达页面上下文的环境转发模块系统的 `loadBundle` 传输覆盖（`BootSeams`）；普通浏览器调用方省略此参数。
 
 外壳拥有浏览器标题投影。选中带有持久标题的会话时，它会渲染 `<session title> — <existing HTML title>` 并响应后续标题修订；未选择会话或选中无标题会话时，会保留现有标题；外壳卸载时恢复标题。现有 HTML 标题仍是可配置的产品后缀。

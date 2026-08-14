@@ -1,6 +1,8 @@
 # desktop — the FUI desktop shell
 
-A Tauri application whose window is a view onto a `dsh --profile fui` process it owns. It spawns the backend on an OS-assigned port, reads the port back from the URL line the web bundle prints, and points the webview at it.
+English | [中文](README.zh.md)
+
+A Tauri application whose window is a view onto a `dsh --profile fui` process it owns. It spawns the backend on an OS-assigned port, reads the port back from the URL line the web bundle prints, then creates the webview with that final URL.
 
 Deliberately outside the pnpm workspace: it has no JavaScript of its own — the page it loads is served by the backend — so a `package.json` here would only subject a Rust crate to the workspace's package gates.
 
@@ -36,7 +38,7 @@ Build the repository once (`pnpm run build`), then, from the repository root:
 cargo run --manifest-path desktop/Cargo.toml
 ```
 
-That is the whole thing. The shell starts the backend, finds a Node that can run it, waits for the URL, and points the window at it.
+That is the whole thing. The shell starts the backend, finds a Node that can run it, waits for the URL, and creates the window after the backend is ready. Creating the webview at its final URL also avoids the macOS WebKit navigation-policy stack produced by navigating away from a bundled placeholder during Tauri setup.
 
 ### How the Node is chosen
 

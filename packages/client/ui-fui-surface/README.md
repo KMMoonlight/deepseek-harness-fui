@@ -1,12 +1,16 @@
 # @deepseek-ai/dsh-client-ui-fui-surface
 
+English | [中文](README.zh.md)
+
 The FUI surface claim. Its browser half marks the document with `data-fui-surface` and loads the alias bridge that repoints [`ui-theme`](../ui-theme/README.md)'s `--dsw-alias-*` layer at [`ui-fui`](../ui-fui/README.md)'s `--fui-*` tokens.
 
-## Why this is the whole skin
+## Why this is the color foundation
 
 `ui-theme` owns the semantic alias layer, and [the styling reference](../../../docs/web-styling.md) requires every feature package to consume those aliases and forbids literal colours. f-ui enforces the mirror-image rule on its own side, with a test that fails per file on any colour literal. Two disciplined variable systems under non-colliding prefixes means repointing one at the other re-skins all thirty-odd stock feature packages — conversation, trajectory, tool cards, sidebar, settings — without editing a single component.
 
-ui-theme names tokens in two families, and both must be bridged: the `--dsw-alias-*` semantic layer, and a smaller `--dsw-specific-*` set naming concrete surfaces (sidebar fill, composer input, menus, bubbles). Missing the second family is not subtle — the sidebar and composer stay white on the FUI ground — but it is invisible until someone opens the affected screen, so [the coverage spec](tests/bridge-coverage.client.spec.ts) fails the build on any token this sheet does not restate, on any stale entry ui-theme has dropped, and on any mapping that resolves to something other than a `--fui-*` token.
+ui-theme names tokens in two families, and both must be bridged: the `--dsw-alias-*` semantic layer, and a smaller `--dsw-specific-*` set naming concrete surfaces (sidebar fill, composer input, menus, bubbles). Missing the second family leaves bright stock surfaces on the FUI ground, so [the coverage spec](tests/bridge-coverage.client.spec.ts) fails on an unmapped token, a stale entry, or a mapping that does not resolve to a `--fui-*` token.
+
+The bridge owns color only. The FUI layout and scoped feature styles own density, square geometry, status rails, focus and selection treatment, and terminal typography. Keeping those responsibilities separate lets the stock profile share the same frontend build without inheriting FUI geometry.
 
 Roles map on a few rules, kept here so additions stay consistent: depth climbs `bg-base` → layers 1..3, with overlays and floating surfaces taking the *opaque* `panel-solid` rather than the translucent `panel-bg` (which would composite against whatever sits beneath); rules climb `border-l1..l4` along f-ui's line ramp; the four text roles collapse onto two, because f-ui expresses hierarchy with fewer steps; and status maps error→danger, warn→warn, success→ok, business→accent, each through that tone's own `-soft`/`-line` derivations.
 

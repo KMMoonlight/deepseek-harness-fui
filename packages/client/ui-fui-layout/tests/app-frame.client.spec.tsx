@@ -17,6 +17,7 @@ import { AppFrame } from '@deepseek-ai/dsh-client-ui-fui-layout/src/client/AppFr
 import type { AppFrameProps } from '@deepseek-ai/dsh-client-ui-fui-layout/src/client/AppFrame.tsx'
 import { SIDEBAR_COLLAPSED } from '@deepseek-ai/dsh-client-ui-fui-layout/src/client/columns.ts'
 import { createLayoutStore } from '@deepseek-ai/dsh-client-ui-fui-layout/src/client/stores.ts'
+import { zh } from '@deepseek-ai/dsh-client-ui-fui-layout/src/client/locales.ts'
 import type {
   SessionId, SessionListState, WorkspaceListState,
 } from '@deepseek-ai/dsh-client-runtime/client'
@@ -50,6 +51,12 @@ let frameWidth = 1920
 /** Test-local selector hook over a framework-neutral store instance. */
 function hookOf<T>(inst: { subscribe: (fn: () => void) => () => void; getSnapshot: () => T }) {
   return function useSelector<S>(sel: (s: T) => S): S { return sel(useSyncExternalStore(inst.subscribe, inst.getSnapshot)) }
+}
+
+/** Test translator over the layout dictionary; common keys echo like the runtime fallback. */
+const translate: AppFrameProps['t'] = (key) => {
+  const value: unknown = Reflect.get(zh, key)
+  return typeof value === 'string' ? value : key
 }
 
 function mountFrame() {
@@ -88,6 +95,7 @@ function mountFrame() {
       useSessions={useSessions}
       useWorkspaces={((sel: (s: WorkspaceListState) => unknown) => sel(workspaceState)) as never}
       SessionProvider={SessionProviderStub}
+      t={translate}
     />
   )
   const utils = render(element())
@@ -138,8 +146,12 @@ afterEach(() => {
 
 describe('AppFrame', () => {
   it('renders three tracks from store state', () => {
-    const { frame } = mountFrame()
+    const { frame, getByRole, getByText } = mountFrame()
     expect(tracks(frame)).toEqual([280, 0])
+    expect(getByRole('link', { name: '跳至主要内容' }).getAttribute('href')).toBe('#dsh-main-content')
+    expect(getByText('智能体控制台')).toBeTruthy()
+    expect(getByText('就绪')).toBeTruthy()
+    expect(getByText('DEEPSEEK HARNESS')).toBeTruthy()
   })
 
   it('renders the session pair with empty owner shares (sessionId is framework-standard)', () => {

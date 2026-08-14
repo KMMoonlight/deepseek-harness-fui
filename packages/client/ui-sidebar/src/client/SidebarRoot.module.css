@@ -282,3 +282,85 @@
     animation: none;
   }
 }
+
+:global(body[data-fui-surface]) .root {
+  --dsh-sidebar-inline-padding: 8px;
+  padding-top: 0;
+  background: color-mix(in srgb, var(--fui-panel-solid) 92%, transparent);
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+:global(body[data-fui-surface]) .root.collapsed {
+  padding: 8px 10px 6px;
+}
+
+:global(body[data-fui-surface]) .logoRow {
+  height: 48px;
+  margin-bottom: 10px;
+  padding: 6px 2px;
+  border-bottom: 1px dashed var(--fui-line);
+}
+
+:global(body[data-fui-surface]) .collapsed .logoRow {
+  height: 36px;
+  margin-bottom: 12px;
+  padding: 0;
+  border-bottom: none;
+}
+
+:global(body[data-fui-surface]) .brand,
+:global(body[data-fui-surface]) .railFish {
+  color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .iconButton {
+  border: 1px solid transparent;
+  border-radius: 0;
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .iconButton:hover {
+  color: var(--fui-primary);
+  background: var(--fui-primary-soft);
+  border-color: var(--fui-primary-line);
+}
+
+:global(body[data-fui-surface]) .iconButton:active,
+:global(body[data-fui-surface]) .newSession:active {
+  transform: translate(1px, 1px);
+}
+
+:global(body[data-fui-surface]) .newSession {
+  height: 34px;
+  margin: 0 0 10px;
+  padding: 6px 12px;
+  border-color: var(--fui-primary-line);
+  border-radius: 0;
+  background: var(--fui-primary-soft);
+  color: var(--fui-primary);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .newSession:hover {
+  background: color-mix(in srgb, var(--fui-primary) 18%, transparent);
+  border-color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .collapsed .newSession {
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+}
+
+:global(body[data-fui-surface]) .collapsed .newSession:hover {
+  color: var(--fui-primary);
+  background: var(--fui-primary-soft);
+  border-color: var(--fui-primary-line);
+}

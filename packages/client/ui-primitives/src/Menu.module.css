@@ -240,3 +240,44 @@
   left: -10px;
   width: 10px;
 }
+
+:global(body[data-fui-surface]) .list,
+:global(body[data-fui-surface]) .submenu,
+:global(body[data-fui-surface]) .list.compactList,
+:global(body[data-fui-surface]) .submenu.compactList {
+  border-color: var(--fui-line-strong);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--fui-panel-solid) 96%, transparent);
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--fui-bg) 78%, transparent);
+}
+
+:global(body[data-fui-surface]) .item,
+:global(body[data-fui-surface]) .compactList .item {
+  border-radius: 0;
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+  font-size: 10px;
+  line-height: 18px;
+  letter-spacing: 0.06em;
+}
+
+:global(body[data-fui-surface]) .item:hover:not(:disabled) {
+  color: var(--fui-bg);
+  background: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .item:hover:not(:disabled) .itemIcon {
+  color: currentColor;
+}
+
+:global(body[data-fui-surface]) .label {
+  color: var(--fui-text-muted);
+  font-family: var(--fui-font);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .separator {
+  background: var(--fui-line);
+}

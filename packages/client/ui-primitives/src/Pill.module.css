@@ -25,3 +25,27 @@
   background: var(--dsw-alias-button-ghost-active-fill);
   box-shadow: inset 0 0 0 1px var(--dsw-alias-button-ghost-active-border);
 }
+
+:global(body[data-fui-surface]) .pill {
+  border: 1px solid var(--fui-neutral-line);
+  border-radius: 0;
+  color: var(--fui-text-dim);
+  background: var(--fui-neutral-soft);
+  font-family: var(--fui-font);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .interactive:hover {
+  color: var(--fui-primary);
+  border-color: var(--fui-primary-line);
+  background: var(--fui-primary-soft);
+}
+
+:global(body[data-fui-surface]) .active {
+  color: var(--fui-bg);
+  border-color: var(--fui-primary);
+  background: var(--fui-primary);
+  box-shadow: none;
+}

@@ -155,3 +155,83 @@
   outline: 2px solid var(--dsw-alias-brand-primary);
   outline-offset: 1px;
 }
+
+:global(body[data-fui-surface]) .card {
+  border-color: var(--fui-line);
+  border-radius: 0;
+  background: var(--fui-panel-bg);
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+  transition-property: border-color, background-color;
+}
+
+:global(body[data-fui-surface]) .card:hover,
+:global(body[data-fui-surface]) .cardOpen {
+  border-color: var(--fui-primary-line);
+  background: var(--fui-primary-soft);
+}
+
+:global(body[data-fui-surface]) .header {
+  border-radius: 0;
+}
+
+:global(body[data-fui-surface]) .name {
+  color: var(--fui-primary);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+:global(body[data-fui-surface]) .description,
+:global(body[data-fui-surface]) .readOnly {
+  color: var(--fui-text-dim);
+  font-size: 10px;
+}
+
+:global(body[data-fui-surface]) .body,
+:global(body[data-fui-surface]) .footer {
+  border-color: var(--fui-line-soft);
+  border-top-style: dashed;
+}
+
+:global(body[data-fui-surface]) .pending {
+  border: 1px solid var(--fui-warn-line);
+  border-radius: 0;
+  background: var(--fui-warn-soft);
+  color: var(--fui-warn);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .discard,
+:global(body[data-fui-surface]) .save {
+  border-radius: 0;
+  font-family: var(--fui-font);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .discard {
+  border-color: var(--fui-line-strong);
+  color: var(--fui-text);
+}
+
+:global(body[data-fui-surface]) .save {
+  border-color: var(--fui-primary);
+  background: var(--fui-primary);
+  color: var(--fui-bg);
+}
+
+:global(body[data-fui-surface]) .discard:hover:not(:disabled) {
+  border-color: var(--fui-primary-line-strong);
+  background: var(--fui-primary-soft);
+  color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .discard:active:not(:disabled),
+:global(body[data-fui-surface]) .save:active:not(:disabled),
+:global(body[data-fui-surface]) .header:active {
+  transform: translate(1px, 1px);
+}

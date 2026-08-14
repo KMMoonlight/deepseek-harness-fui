@@ -474,3 +474,118 @@
   text-decoration: line-through;
   opacity: 0.7;
 }
+
+:global(body[data-fui-surface]) .notice {
+  border: 1px solid var(--fui-neutral-line);
+  border-radius: 0;
+  background: var(--fui-neutral-soft);
+  color: var(--fui-text-dim);
+  font-family: var(--fui-font);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+:global(body[data-fui-surface]) .noticeError {
+  border-color: var(--fui-danger-line);
+  background: var(--fui-danger-soft);
+  color: var(--fui-danger);
+}
+
+:global(body[data-fui-surface]) .card {
+  gap: 8px;
+  padding-top: 8px;
+  border-color: var(--fui-line-strong);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--fui-panel-solid) 94%, transparent);
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--fui-primary) 9%, transparent);
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+:global(body[data-fui-surface]) .card:focus-within {
+  border-color: var(--fui-primary-line);
+  box-shadow: 3px 3px 0 var(--fui-primary-soft);
+}
+
+:global(body[data-fui-surface]) .input,
+:global(body[data-fui-surface]) .mirror,
+:global(body[data-fui-surface]) .backdrop {
+  font-family: 'DshChipCell', var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .input {
+  caret-color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .input::placeholder {
+  color: var(--fui-text-muted);
+}
+
+:global(body[data-fui-surface]) .row {
+  padding: 2px 7px 6px;
+  border-top: 1px dashed var(--fui-line);
+}
+
+:global(body[data-fui-surface]) .add,
+:global(body[data-fui-surface]) .primary,
+:global(body[data-fui-surface]) .select,
+:global(body[data-fui-surface]) .retry {
+  border-radius: 0;
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .add {
+  border: 1px solid var(--fui-neutral-line);
+  background: var(--fui-neutral-soft);
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .add:hover:not(:disabled) {
+  color: var(--fui-primary);
+  border-color: var(--fui-primary-line);
+  background: var(--fui-primary-soft);
+}
+
+:global(body[data-fui-surface]) .select {
+  border: 1px solid transparent;
+  color: var(--fui-text-dim);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+:global(body[data-fui-surface]) .select:hover:not(:disabled) {
+  color: var(--fui-primary);
+  border-color: var(--fui-primary-line);
+  background-color: var(--fui-primary-soft);
+}
+
+:global(body[data-fui-surface]) .primary {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--fui-primary);
+  background: var(--fui-primary);
+  color: var(--fui-bg);
+  transition: none;
+}
+
+:global(body[data-fui-surface]) .primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--fui-primary) 84%, white);
+}
+
+:global(body[data-fui-surface]) .primary:active:not(:disabled),
+:global(body[data-fui-surface]) .add:active:not(:disabled) {
+  transform: translate(1px, -1px);
+}
+
+:global(body[data-fui-surface]) .pending {
+  border-radius: 0;
+  background: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .chip,
+:global(body[data-fui-surface]) .hlSegment {
+  border-radius: 0;
+}

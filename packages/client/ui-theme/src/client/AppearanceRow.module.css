@@ -55,3 +55,49 @@
   background: var(--dsw-alias-bg-module-platform);
   border-color: var(--dsw-static-neutral-bluish-400);
 }
+
+:global(body[data-fui-surface]) .group {
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px dashed var(--fui-line-soft);
+}
+
+:global(body[data-fui-surface]) .title {
+  color: var(--fui-warn);
+  font-family: var(--fui-font);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .cubeRow {
+  gap: 8px;
+}
+
+:global(body[data-fui-surface]) .themeCube {
+  min-height: 76px;
+  padding: 14px 18px;
+  border-color: var(--fui-line);
+  border-radius: 0;
+  background: var(--fui-panel-bg);
+  color: var(--fui-text-dim);
+  font-family: var(--fui-font);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+:global(body[data-fui-surface]) .themeCube:hover:not(.selected) {
+  border-color: var(--fui-line-strong);
+  background: var(--fui-line-ghost);
+  color: var(--fui-text);
+}
+
+:global(body[data-fui-surface]) .selected {
+  border-color: var(--fui-primary);
+  background: var(--fui-primary);
+  color: var(--fui-bg);
+}
+
+:global(body[data-fui-surface]) .themeCube:active {
+  transform: translate(1px, 1px);
+}

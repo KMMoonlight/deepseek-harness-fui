@@ -391,6 +391,21 @@ describe('Issue lifecycle workflow', () => {
 })
 
 describe('Git hooks', () => {
+  it('runs the staged whitespace check without an interactive pager', () => {
+    const lefthook = loadWorkflow('lefthook.yml')
+    const preCommit = lefthook['pre-commit']
+    if (!isRecord(preCommit) || !Array.isArray(preCommit.jobs)) {
+      throw new TypeError('lefthook must define pre-commit jobs')
+    }
+    const whitespace: unknown = preCommit.jobs.find(
+      (job: unknown) => isRecord(job) && job.name === 'whitespace (staged)',
+    )
+
+    expect(whitespace).toMatchObject({
+      run: 'git --no-pager diff --cached --check',
+    })
+  })
+
   it('leaves frozen Agent Note sidecars to the archive verifier', () => {
     const lefthook = loadWorkflow('lefthook.yml')
 

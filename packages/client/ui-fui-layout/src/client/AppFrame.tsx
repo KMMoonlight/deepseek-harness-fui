@@ -7,25 +7,27 @@
  * session-aware occupants render in fixed column positions; strict entries
  * gate themselves on current-session availability while session-maybe
  * entries retain identity. Pure component: everything arrives
- * through the three framework shares — zero cordis or framework imports,
- * zero self-made hooks.
+ * through the runtime, child-slot, locale, and store shares. It has zero
+ * Cordis imports and creates no framework hooks.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { PropsRenderSlots, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+import { Badge, ScreenEffects } from '@deepseek-ai/dsh-client-ui-fui'
+import type { PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.ts'
 import type { createLayoutStore } from './stores.ts'
 import css from './AppFrame.module.css'
 
-/** Full composed props: runtime share + child-slot render share + store share. */
+/** Full composed props: runtime, child-slot render, locale, and store shares. */
 export type AppFrameProps =
   & PropsRuntime<'root'>
   & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'shell.overlay'>
+  & PropsLocale<'fui-layout'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
 
 /** Center column grid item (session-body building block). */
 function CenterColumn(props: { children?: ReactNode }) {
-  return <div className={css.centerCol}>{props.children}</div>
+  return <main id="dsh-main-content" className={css.centerCol}>{props.children}</main>
 }
 
 /** Details column grid item; width 0 keeps the subtree mounted (never unmount on close). */
@@ -89,11 +91,17 @@ export function AppFrame({
   useSessions,
   actions,
   renderSlot,
+  t,
 }: AppFrameProps) {
   const panels = useStore(s => s)
   const detailsSession = useSessions((s) => {
     const current = s.current
     return current !== undefined && s.byId[current]?.blank === false ? current : undefined
+  })
+  const sessionStatus = useSessions((s) => {
+    if (s.phase !== 'ready') return 'session.syncing'
+    if (s.current === undefined) return 'session.idle'
+    return s.byId[s.current]?.running === true ? 'session.running' : 'session.ready'
   })
   const frameRef = useRef<HTMLDivElement | null>(null)
   const [viewport, setViewport] = useState(() => window.innerWidth)
@@ -170,6 +178,21 @@ export function AppFrame({
       data-details-collapsed={cols.details === 0 || undefined}
       data-dragging={dragging || undefined}
     >
+      <a className={css.skipLink} href="#dsh-main-content">{t('skip.main')}</a>
+      <header className={css.commandBar}>
+        <div className={css.commandIdentity}>
+          <span className={css.commandMark}>DSH</span>
+          <span className={css.commandDivider}>//</span>
+          <span>{t('command.title')}</span>
+          <span className={css.commandNode} aria-hidden="true">◆</span>
+        </div>
+        <div className={css.commandStatus}>
+          <span>{t('command.session')}</span>
+          <Badge tone={sessionStatus === 'session.running' ? 'primary' : sessionStatus === 'session.syncing' ? 'warn' : 'ok'}>
+            {t(sessionStatus)}
+          </Badge>
+        </div>
+      </header>
       <div className={css.sidebarCol}>
         {/* Render-site slot call with live concession output: a closed
             sidebar keeps the mounted slot at the compact-rail width, and the
@@ -193,6 +216,14 @@ export function AppFrame({
       <div className={css.overlayLayer} data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>
+      <footer className={css.statusBar}>
+        <span>{t('status.profile')}</span>
+        <span className={css.statusRule} aria-hidden="true" />
+        <span>{t('status.workspace')}</span>
+        <span className={css.statusSpacer} />
+        <span>DEEPSEEK HARNESS</span>
+      </footer>
+      <ScreenEffects />
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
       {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
       {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}

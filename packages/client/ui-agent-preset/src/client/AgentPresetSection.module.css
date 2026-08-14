@@ -359,6 +359,127 @@
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
+:global(body[data-fui-surface]) .section {
+  gap: 14px;
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .title {
+  color: var(--fui-warn);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .intro,
+:global(body[data-fui-surface]) .cardDesc,
+:global(body[data-fui-surface]) .cardId,
+:global(body[data-fui-surface]) .revealedPath {
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .groupHead {
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--fui-line);
+  color: var(--fui-primary);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+}
+
+:global(body[data-fui-surface]) .cards {
+  gap: 8px;
+}
+
+:global(body[data-fui-surface]) .card {
+  border-color: var(--fui-line);
+  border-radius: 0;
+  background: var(--fui-panel-bg);
+  transition-property: border-color, background-color;
+}
+
+:global(body[data-fui-surface]) .card:hover:not(.cardActive) {
+  border-color: var(--fui-line-strong);
+  background: var(--fui-line-ghost);
+}
+
+:global(body[data-fui-surface]) .cardActive {
+  border-color: var(--fui-primary);
+  background: var(--fui-primary-soft);
+}
+
+:global(body[data-fui-surface]) .cardBroken,
+:global(body[data-fui-surface]) .cardBroken:hover {
+  border-color: var(--fui-danger-line-strong);
+}
+
+:global(body[data-fui-surface]) .cardMain {
+  border-radius: 0;
+}
+
+:global(body[data-fui-surface]) .cardName {
+  color: var(--fui-text);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+:global(body[data-fui-surface]) .badge,
+:global(body[data-fui-surface]) .inUse,
+:global(body[data-fui-surface]) .brokenBadge {
+  border-radius: 0;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .inUse {
+  background: var(--fui-primary);
+  color: var(--fui-bg);
+}
+
+:global(body[data-fui-surface]) .brokenBadge {
+  background: var(--fui-danger);
+  color: var(--fui-bg);
+}
+
+:global(body[data-fui-surface]) .cardFoot {
+  border-top-color: var(--fui-line-soft);
+}
+
+:global(body[data-fui-surface]) .iconButton,
+:global(body[data-fui-surface]) .secondaryButton,
+:global(body[data-fui-surface]) .input,
+:global(body[data-fui-surface]) .viewerCode {
+  border-radius: 0;
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .iconButton:hover:not(:disabled),
+:global(body[data-fui-surface]) .secondaryButton:hover:not(:disabled) {
+  background: var(--fui-primary-soft);
+  color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .input,
+:global(body[data-fui-surface]) .viewerCode {
+  border-color: var(--fui-line);
+  background: var(--fui-bg);
+  color: var(--fui-text);
+}
+
+:global(body[data-fui-surface]) .input:focus {
+  border-color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .iconButton:active,
+:global(body[data-fui-surface]) .secondaryButton:active,
+:global(body[data-fui-surface]) .cardMain:active:not(:disabled) {
+  transform: translate(1px, 1px);
+}
+
 .error {
   margin: 0;
   font-size: 12px;

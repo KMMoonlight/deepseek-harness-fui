@@ -14,6 +14,7 @@ import * as Cordis from '@deepseek-ai/cordis'
 import * as UiSlots from '@deepseek-ai/dsh-client-ui-slots'
 import * as WebReact from '@deepseek-ai/dsh-client-web-react'
 import * as UiPrimitives from '@deepseek-ai/dsh-client-ui-primitives'
+import * as UiFui from '@deepseek-ai/dsh-client-ui-fui'
 import * as UiAttachment from '@deepseek-ai/dsh-client-ui-attachment'
 import * as SchemaForm from '@deepseek-ai/dsh-client-schema-form'
 import type { PlatformModule } from './platform.ts'
@@ -35,6 +36,7 @@ export function getStaticModules(): Record<string, unknown> {
     '@deepseek-ai/dsh-client-ui-slots': UiSlots,
     '@deepseek-ai/dsh-client-web-react': WebReact,
     '@deepseek-ai/dsh-client-ui-primitives': UiPrimitives,
+    '@deepseek-ai/dsh-client-ui-fui': UiFui,
     '@deepseek-ai/dsh-client-ui-attachment': UiAttachment,
     '@deepseek-ai/dsh-client-schema-form': SchemaForm,
   } satisfies Record<PlatformModule, unknown>

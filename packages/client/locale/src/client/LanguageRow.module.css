@@ -49,3 +49,48 @@
 .chevron {
   flex: none;
 }
+
+:global(body[data-fui-surface]) .row {
+  padding: 14px 0;
+  border-bottom: 1px dashed var(--fui-line-soft);
+}
+
+:global(body[data-fui-surface]) .title {
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+:global(body[data-fui-surface]) .selector {
+  min-width: 152px;
+  height: 34px;
+  justify-content: space-between;
+  border: 1px solid var(--fui-line-strong);
+  border-radius: 0;
+  background: var(--fui-panel-bg);
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+  font-size: 11px;
+}
+
+:global(body[data-fui-surface]) .selector:hover {
+  border-color: var(--fui-primary-line-strong);
+  background: var(--fui-primary-soft);
+  color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .selector:active {
+  transform: translate(1px, 1px);
+}
+
+@media (max-width: 560px) {
+  :global(body[data-fui-surface]) .row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  :global(body[data-fui-surface]) .rowText {
+    padding-right: 0;
+  }
+}

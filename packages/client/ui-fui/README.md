@@ -1,5 +1,7 @@
 # @deepseek-ai/dsh-client-ui-fui
 
+English | [中文](README.zh.md)
+
 FUI (Fictional User Interface) styled React components — dark navy ground, thin steel-blue rules, teal highlights — vendored from [f-ui](https://github.com/KMMoonlight/fui) under MIT. A pure library in the same tier as [`ui-primitives`](../ui-primitives/README.md): zero cordis, no plugin, no service, no slot registration.
 
 ## Why vendored rather than depended on
@@ -26,6 +28,8 @@ Two repository-wide settings are relaxed for the vendored sources only, both for
 
 The three genuine type errors `strict` did find were fixed in place rather than configured away: `RefObject.current` is readonly under React 18 types, so `assignRef` in `dropdown-menu.tsx` and `select.tsx` narrows through `MutableRefObject`; and `notification-stack.tsx` widens one optional callback prop to accept `undefined` explicitly. Code outside `src/components/` and `src/lib/` — this package's barrel, its invariant companion, and its specs — is fully linted and fully strict.
 
+`src/lib/cn.ts` carries one local JSDoc and return annotation because the barrel exposes `cn` as package API and `verify-export-jsdoc` checks that export. A re-sync that overwrites it fails the documentation gate instead of silently dropping the public description.
+
 ## Model Experience
 
 None, as this package contributes presentation atoms to the browser client; nothing here reaches a model request.
@@ -39,4 +43,4 @@ None; this package neither assembles nor sends a provider request.
 - **Single dark theme** — upstream ships only the `cyan` theme; there is no light variant. A consumer wanting light/dark must author the second custom-property block itself.
 - **Utilities depend on an application-layer build** — the package cannot be consumed by an application that does not run Tailwind over its component sources, and that coupling is invisible until the UI renders unstyled.
 - **Vendored code drifts** — nothing detects upstream f-ui changes; re-sync is manual and its React-surface check is a human step, not a gate.
-- **Fonts are not vendored** — upstream drives typography through `--fui-font` with eight bundled `@fontsource` families; this package ships neither the font packages nor the `data-fui-font` switch, so the stack falls back to whatever the application provides.
+- **Fonts are application-owned** — this package defines the `data-fui-font` stacks but ships no font asset. The Web application supplies Space Mono 400 and 700 as the default FUI face; another consumer must provide its selected asset. Space Mono has no CJK glyphs, so Chinese text uses the platform fallback in `--fui-font`.

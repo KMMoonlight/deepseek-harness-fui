@@ -1,5 +1,7 @@
 # `@deepseek-ai/dsh-fui-app`
 
+English | [中文](README.zh.md)
+
 The FUI surface bundle. [`cordis.patch.yml`](cordis.patch.yml) stacks over [`dsh-web-app`](../web-app/README.md), which itself stacks over [`dsh-base`](../base/README.md), and swaps the browser roster's presentation rows for their f-ui counterparts. The `fui` profile composes all three in that order.
 
 ## Why a layer over dsh-web-app, not a fork of it
@@ -42,5 +44,5 @@ The persona sits in the system prompt's stable head and does not change for the 
 ## Known Limitations and Deferred Work
 
 - **Shares one frontend build with `dsh-web-app`** — both surfaces load the same dist, so an application-layer change (the Tailwind utility build) reaches the stock surface too. Only the roster and its theme differ.
-- **The roster swap is not yet expressed** — this layer currently restates only the persona; the presentation rows it exists to replace arrive with the theme and layout packages.
+- **Feature packages remain shared** — the roster replaces the surface claim and application layout, while conversation, sidebar, Workspace, settings, and tool-card packages stay common to both profiles. Their FUI rules activate only under `body[data-fui-surface]`.
 - **No composition test asserts the layer order** — that the FUI rows land over the web rows is verified by reading `--dump-config`, not by a gate.

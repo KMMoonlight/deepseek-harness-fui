@@ -1,20 +1,26 @@
 # @deepseek-ai/dsh-client-ui-fui-layout
 
-The FUI surface's application frame — a fork of [`ui-layout`](../ui-layout/README.md), mounted in its place by the `fui` profile's roster, which disables the stock row. Both packages declare the same four child slots and `root` is single-kind, so exactly one of them may be mounted; the disable is what makes the swap legal rather than a load-time conflict.
+English | [中文](README.zh.md)
 
-## What the fork changes, and what it deliberately does not
+The FUI surface's application frame, forked from [`ui-layout`](../ui-layout/README.md) and mounted in its place by the `fui` profile. Both packages declare the same child slots and `root` is single-kind, so the profile disables the stock row before it mounts this package.
 
-Only the *form* is restated: square corners instead of the stock pill radius, and a hairline rule between the columns. Colour is not restated at all — it already arrives through [the alias bridge](../ui-fui-surface/README.md), so the frame was FUI-coloured before this package existed.
+## FUI shell
 
-Everything else is inherited verbatim, on purpose. Column sizing, the drag handles, the narrow-window concession chain, the panel-geometry service, and the theme presenter are infrastructure rather than styling, and a re-implementation would have re-derived them worse. The value of the fork is not what it changes today — it is that the frame is now this repository's to restructure, without touching an upstream package or fighting a merge.
+The frame owns a three-row control shell around the application columns: an upper command rail reports the product and live Session state, the center row holds sidebar, conversation, and details, and a lower status rail reports the active surface and Workspace context. The center surface uses the f-ui grid, steel rules, square resize controls, and the target palette supplied by [the alias bridge](../ui-fui-surface/README.md). A skip link targets the center column, and narrow viewports retain the command and status rails while collapsing secondary labels.
 
-Its inherited specs came with it and now cover the fork.
+The root registration binds the `fui-layout` locale namespace, so command, status, and accessibility copy follows the active client locale. Product marks such as `DSH` and `DEEPSEEK HARNESS` remain literal.
 
-Shell plugin: three-column AppFrame (drag handles and concession chain) plus the `ctx.layout` panel-geometry service; it registers into the runtime-owned `root` slot and declares `sidebar`, `conversation`, `details`, and `conversation.empty`. The sidebar resize boundary is an invisible hit strip, while the details boundary retains its floating pill; only details shrinks during concession and then auto-closes. A closed sidebar retains a 56px control rail while details closes to zero width. The package also seats the theme presenter: it consumes resolved `ctx.theme` snapshots and projects them onto the document (`html { color-scheme }` for native UA chrome, `body[data-ds-dark-theme]` from the active color scheme, the theme's alias tokens as inline variables on body, and one owned `<meta name="theme-color">` whose content follows the computed body background). Measuring after palette and token application keeps the rendered background as the single color authority; disposing the presenter removes its metadata node with its other global writes.
+`Badge` and `ScreenEffects` come from [`ui-fui`](../ui-fui/README.md). The browser shell shares that library through `PLATFORM_MODULES`, so runtime client bundles consume the same React and f-ui module instance as the application instead of bundling a second copy.
+
+## Preserved layout behavior
+
+Column sizing, drag handles, the narrow-window concession chain, the `ctx.layout` panel-geometry service, and the theme presenter retain the behavior of `ui-layout`. The plugin registers into the runtime-owned `root` slot and declares `sidebar`, `conversation`, `details`, and `conversation.empty`. The sidebar resize boundary is an invisible hit strip, while details retains a visible square handle. Only details shrinks during concession and then auto-closes. A closed sidebar retains a 56px control rail while details closes to zero width.
+
+The theme presenter projects resolved `ctx.theme` snapshots onto the document: native color scheme, the active body theme attribute, inline alias tokens, and one owned theme-color metadata node. Disposing the presenter removes those global writes.
 
 AppFrame always mounts the conversation and details columns; a connected Session renders through `SessionProvider`. The transient layout store starts the sidebar at its default width and details closed, and it never reads or writes `localStorage`. Hero and other unselected states also derive a zero rendered details width without changing that stored preference. AppFrame retains the last non-blank Session id across those states: the first Session remains closed, an explicit details action opens the contract default width, returning to the same Session restores its unchanged width, and selecting a different Session closes details before paint. The conversation owner share is empty, while the sidebar owner share contains only `collapsed` and `width`; registrants obtain business data from standard hooks and actions from their own inject faces.
 
-The `/client` exports are the plugin body (`apply`/`inject`), `LayoutController`, and the four owner-share interfaces. AppFrame, the panel store, and the concession solver remain package-internal.
+The `/client` exports are the plugin body (`apply`/`inject`), `LayoutController`, and the owner-share interfaces. AppFrame, the panel store, and the concession solver remain package-internal.
 
 ## Model Experience
 

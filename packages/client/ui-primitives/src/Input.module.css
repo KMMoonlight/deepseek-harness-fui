@@ -36,3 +36,25 @@
 .input::placeholder {
   color: var(--dsw-alias-label-dimmed);
 }
+
+:global(body[data-fui-surface]) .wrap {
+  border-color: var(--fui-line);
+  border-radius: 0;
+  background: var(--fui-panel);
+}
+
+:global(body[data-fui-surface]) .wrap:focus-within {
+  border-color: var(--fui-primary-line);
+}
+
+:global(body[data-fui-surface]) .input {
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+:global(body[data-fui-surface]) .input::placeholder,
+:global(body[data-fui-surface]) .icon {
+  color: var(--fui-text-muted);
+}

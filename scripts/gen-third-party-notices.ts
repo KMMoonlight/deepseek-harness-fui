@@ -8,14 +8,15 @@
  * `.agents/notes/implemented/process/2026-07-30-generated-third-party-notices.md`.
  */
 
-import { existsSync, globSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, globSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 import * as yaml from 'js-yaml'
 import { parse as parseToml, type TomlTableWithoutBigInt, type TomlValueWithoutBigInt } from 'smol-toml'
 import parseSpdx from 'spdx-expression-parse'
 
 const root = resolve(import.meta.dirname, '..')
 const OUT = 'THIRD_PARTY_NOTICES.md'
+export const SPACE_MONO_LICENSE_OUT = 'apps/web/public/licenses/space-mono-OFL-1.1.txt'
 
 /** Dependency-declaration kinds a consumer resolves at runtime. */
 const RUNTIME_KINDS = ['dependencies', 'optionalDependencies'] as const
@@ -50,15 +51,22 @@ const FIRST_PARTY = new Set([
 export const CLAUDE_AGENT_SDK_PACKAGE = '@anthropic-ai/claude-agent-sdk'
 const CLAUDE_PLATFORM_PACKAGE_PREFIX = `${CLAUDE_AGENT_SDK_PACKAGE}-`
 const CLAUDE_PLATFORM_DECLARED_LICENSE = 'SEE LICENSE IN LICENSE.md'
+export const SPACE_MONO_FONT_PACKAGE = '@fontsource/space-mono'
+export const SPACE_MONO_FONT_LICENSE = 'OFL-1.1'
+const SPACE_MONO_LICENSE_SOURCE = `apps/web/node_modules/${SPACE_MONO_FONT_PACKAGE}/LICENSE`
 
 /**
- * Whether a non-permissive runtime declaration has an identity-scoped owner
- * authorization. This does not reclassify its terms as permissive.
+ * Whether a non-permissive runtime declaration has an exact owner
+ * authorization. This does not reclassify its terms as permissive. Claude's
+ * authorization follows its exact package identity; Space Mono additionally
+ * requires the reviewed OFL-1.1 declaration.
  * @param name - exact npm package identity.
- * @returns true only for the official Claude Agent SDK package.
+ * @param license - upstream license declaration.
+ * @returns true only for an authorized identity and license combination.
  */
-export function isOwnerAuthorizedRuntime(name: string): boolean {
+export function isOwnerAuthorizedRuntime(name: string, license: string): boolean {
   return name === CLAUDE_AGENT_SDK_PACKAGE
+    || (name === SPACE_MONO_FONT_PACKAGE && license === SPACE_MONO_FONT_LICENSE)
 }
 
 /**
@@ -287,6 +295,30 @@ function installedManifest(name: string): VirtualManifest | undefined {
     if (manifest !== undefined) break
   }
   return manifest
+}
+
+/**
+ * Read the complete reviewed Space Mono copyright and OFL-1.1 text that the
+ * Web distribution copies beside the font files used by browser and desktop.
+ * @returns the installed package's license text with one trailing newline.
+ */
+export function spaceMonoLicenseText(): string {
+  const source = resolve(root, SPACE_MONO_LICENSE_SOURCE)
+  if (!existsSync(source)) {
+    throw new Error(
+      `gen-third-party-notices: cannot resolve ${SPACE_MONO_LICENSE_SOURCE}; run \`pnpm install\`.`,
+    )
+  }
+  const text = readFileSync(source, 'utf8').trimEnd()
+  if (
+    !text.startsWith('Copyright 2016 The Space Mono Project Authors')
+    || !text.includes('SIL OPEN FONT LICENSE Version 1.1')
+  ) {
+    throw new Error(
+      `gen-third-party-notices: ${SPACE_MONO_FONT_PACKAGE} no longer carries the reviewed Space Mono copyright and OFL-1.1 text.`,
+    )
+  }
+  return `${text}\n`
 }
 
 /** License and repository URL for an installed external package, from the pnpm store. */
@@ -656,6 +688,16 @@ ${rows.join('\n')}
 `
 }
 
+/** Render the disclosure for font bytes in the Web frontend used by both clients. */
+function renderSpaceMonoDistribution(present: boolean): string {
+  if (!present) return ''
+  return `
+## Bundled font software
+
+The Web frontend used by browser clients and the desktop shell bundles the published Space Mono web-font files from \`${SPACE_MONO_FONT_PACKAGE}\` under ${SPACE_MONO_FONT_LICENSE}. The build preserves the font bytes and ships their copyright notice and complete license at [\`${SPACE_MONO_LICENSE_OUT}\`](${SPACE_MONO_LICENSE_OUT}).
+`
+}
+
 /**
  * Render the complete notices document.
  * @returns the exact bytes `THIRD_PARTY_NOTICES.md` must hold.
@@ -673,13 +715,17 @@ export function render(): string {
   )
     ? collectClaudeDistribution()
     : undefined
+  const distributesSpaceMono = runtimeDeps.some(
+    dep => dep.name === SPACE_MONO_FONT_PACKAGE,
+  )
+  if (distributesSpaceMono) spaceMonoLicenseText()
 
   const nonPermissiveDev = devDeps.filter(dep => !isPermissive(dep.license))
-  // A copyleft license reaching a shipped surface is a distribution decision,
-  // not a rendering detail; the notices cannot quietly absorb it.
+  // Non-permissive terms reaching a shipped artifact need an exact owner
+  // decision; rendering the notices cannot silently broaden that decision.
   const nonPermissiveRuntime = runtimeDeps.filter(dep =>
     !isPermissive(dep.license)
-    && !isOwnerAuthorizedRuntime(dep.name),
+    && !isOwnerAuthorizedRuntime(dep.name, dep.license),
   )
   if (nonPermissiveRuntime.length > 0) {
     throw new Error(`gen-third-party-notices: runtime ${nonPermissiveRuntime.map(dep => `${dep.name} (${dep.license})`).join(', ')} is not a permissive license; review the distribution terms and record the decision before regenerating.`)
@@ -715,6 +761,7 @@ pnpm applies local patches to the following packages at install time, so shipped
 
 ${patchedLines.join('\n')}
 ${renderClaudeDistribution(claudeDistribution)}
+${renderSpaceMonoDistribution(distributesSpaceMono)}
 
 ## Development-only npm dependencies
 
@@ -748,8 +795,10 @@ ${BUILD_TIME_TOOLS.map(tool => `| [\`${tool.name}\`](${tool.repo}) | ${tool.lice
  * tests neither regenerates the committed file nor calls process.exit. */
 function main(): void {
   const content = render()
+  const spaceMonoLicense = spaceMonoLicenseText()
   if (process.argv.includes('--check')) {
     let committed: string | null = null
+    let committedSpaceMonoLicense: string | null = null
     try {
       committed = readFileSync(resolve(root, OUT), 'utf8')
     } catch {
@@ -757,16 +806,25 @@ function main(): void {
       // file is not a state this repo produces, and the remedy is the same.
       committed = null
     }
-    if (committed === content) {
-      console.log(`gen-third-party-notices: ${OUT} is up to date.`)
+    try {
+      committedSpaceMonoLicense = readFileSync(resolve(root, SPACE_MONO_LICENSE_OUT), 'utf8')
+    } catch {
+      // The generated asset follows the same missing-or-unreadable remedy.
+      committedSpaceMonoLicense = null
+    }
+    if (committed === content && committedSpaceMonoLicense === spaceMonoLicense) {
+      console.log(`gen-third-party-notices: ${OUT} and ${SPACE_MONO_LICENSE_OUT} are up to date.`)
       process.exit(0)
     }
-    console.error(`gen-third-party-notices: ${OUT} is stale. Run \`pnpm run gen-third-party-notices\` and commit ${OUT}.`)
+    console.error(`gen-third-party-notices: generated notices are stale. Run \`pnpm run gen-third-party-notices\` and commit ${OUT} and ${SPACE_MONO_LICENSE_OUT}.`)
     process.exit(1)
   }
 
   writeFileSync(resolve(root, OUT), content)
-  console.log(`gen-third-party-notices: wrote ${OUT}.`)
+  const licenseOut = resolve(root, SPACE_MONO_LICENSE_OUT)
+  mkdirSync(dirname(licenseOut), { recursive: true })
+  writeFileSync(licenseOut, spaceMonoLicense)
+  console.log(`gen-third-party-notices: wrote ${OUT} and ${SPACE_MONO_LICENSE_OUT}.`)
 }
 
 // Run only when invoked as a script, not when imported by a test.

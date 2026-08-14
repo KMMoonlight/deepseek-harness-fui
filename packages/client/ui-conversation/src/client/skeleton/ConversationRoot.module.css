@@ -363,3 +363,66 @@
 .root[data-phase='settling'] .composerSeat {
   visibility: hidden;
 }
+
+:global(body[data-fui-surface]) .root {
+  background: transparent;
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .header {
+  padding: 9px 16px 0;
+  background: color-mix(in srgb, var(--fui-panel-solid) 62%, transparent);
+}
+
+:global(body[data-fui-surface]) .header::after {
+  bottom: 0;
+  background: var(--fui-line);
+}
+
+:global(body[data-fui-surface]) .crumb,
+:global(body[data-fui-surface]) .tab {
+  border-radius: 0;
+  color: var(--fui-text-dim);
+  font-family: var(--fui-font);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .crumb:hover:not(:disabled) {
+  color: var(--fui-primary);
+  background: var(--fui-primary-soft);
+}
+
+:global(body[data-fui-surface]) .crumbCurrent,
+:global(body[data-fui-surface]) .tabActive {
+  color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .tab::after {
+  height: 1px;
+  border-radius: 0;
+}
+
+:global(body[data-fui-surface]) .tabActive::after {
+  background: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .root[data-phase='active'] .composerSeat {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fui-bg) 0%, transparent) 0,
+    var(--fui-bg) 36px
+  );
+}
+
+:global(body[data-fui-surface]) .composerHero {
+  padding-bottom: 16px;
+}
+
+:global(body[data-fui-surface]) .heroGlow {
+  opacity: 0.28;
+  filter: hue-rotate(105deg) saturate(1.3);
+}

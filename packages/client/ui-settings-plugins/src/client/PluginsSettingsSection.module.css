@@ -83,3 +83,67 @@
   font-size: 13px;
   color: var(--dsw-alias-label-tertiary);
 }
+
+:global(body[data-fui-surface]) .section {
+  gap: 14px;
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .heading {
+  color: var(--fui-warn);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .intro,
+:global(body[data-fui-surface]) .empty {
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .tabs {
+  align-items: stretch;
+  gap: 6px;
+  border-bottom: 1px dashed var(--fui-line);
+  padding-bottom: 8px;
+}
+
+:global(body[data-fui-surface]) .tab {
+  min-height: 32px;
+  padding: 5px 12px;
+  border: 1px solid var(--fui-line);
+  border-radius: 0;
+  color: var(--fui-text-dim);
+  font-family: var(--fui-font);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .tab:hover {
+  border-color: var(--fui-line-strong);
+  background: var(--fui-line-ghost);
+  color: var(--fui-text);
+}
+
+:global(body[data-fui-surface]) .tab[data-active='true'] {
+  border-color: var(--fui-primary);
+  background: var(--fui-primary);
+  color: var(--fui-bg);
+}
+
+:global(body[data-fui-surface]) .tab[data-active='true']::after,
+:global(body[data-fui-surface]) .tab:focus-visible::after {
+  content: none;
+}
+
+:global(body[data-fui-surface]) .tab:focus-visible {
+  outline-color: var(--fui-primary);
+  border-radius: 0;
+}
+
+:global(body[data-fui-surface]) .tab:active {
+  transform: translate(1px, 1px);
+}

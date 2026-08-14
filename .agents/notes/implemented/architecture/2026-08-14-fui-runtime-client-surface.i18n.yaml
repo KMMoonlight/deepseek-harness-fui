@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-14-fui-runtime-client-surface.md
+2026-08-14-fui-runtime-client-surface.md: c87873a964d901b67d5e25c9e9380e5d43abe9ef
+2026-08-14-fui-runtime-client-surface.zh.md: 40dbed667282312499537e92828040d95aac13b9

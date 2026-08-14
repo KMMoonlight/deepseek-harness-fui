@@ -354,3 +354,62 @@
     transition: none;
   }
 }
+
+:global(body[data-fui-surface]) .projectRow,
+:global(body[data-fui-surface]) .sessionRow,
+:global(body[data-fui-surface]) .searchResultRow {
+  border: 1px solid transparent;
+  border-radius: 0;
+  color: var(--fui-text-dim);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .projectRow:hover,
+:global(body[data-fui-surface]) .sessionRow:hover,
+:global(body[data-fui-surface]) .searchResultRow:hover,
+:global(body[data-fui-surface]) .projectRow.menuOpen,
+:global(body[data-fui-surface]) .sessionRow.menuOpen {
+  color: var(--fui-primary);
+  border-color: var(--fui-primary-line);
+  background: var(--fui-primary-soft);
+}
+
+:global(body[data-fui-surface]) .sessionRow.selected,
+:global(body[data-fui-surface]) .searchResultRow.selected {
+  color: var(--fui-bg);
+  border-color: var(--fui-primary);
+  background: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .sessionRow.selected .slot,
+:global(body[data-fui-surface]) .sessionRow.selected .time,
+:global(body[data-fui-surface]) .searchResultRow.selected .searchResultWorkspace,
+:global(body[data-fui-surface]) .searchResultRow.selected .searchResultSnippet {
+  color: currentColor;
+}
+
+:global(body[data-fui-surface]) .title,
+:global(body[data-fui-surface]) .searchResultTitle {
+  font-size: 10px;
+  line-height: 18px;
+  letter-spacing: 0.04em;
+}
+
+:global(body[data-fui-surface]) .meta,
+:global(body[data-fui-surface]) .time,
+:global(body[data-fui-surface]) .searchResultWorkspace,
+:global(body[data-fui-surface]) .searchResultSnippet {
+  color: var(--fui-text-muted);
+  font-size: 8px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+}
+
+:global(body[data-fui-surface]) .folderActive {
+  color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .renameInput,
+:global(body[data-fui-surface]) .iconButton {
+  border-radius: 0;
+}

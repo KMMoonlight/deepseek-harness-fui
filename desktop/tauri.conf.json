@@ -7,18 +7,6 @@
     "frontendDist": "./placeholder"
   },
   "app": {
-    "windows": [
-      {
-        "title": "DeepSeek FUI",
-        "width": 1280,
-        "height": 800,
-        "minWidth": 640,
-        "minHeight": 480,
-        "resizable": true,
-        "visible": true,
-        "backgroundColor": "#060c18"
-      }
-    ],
     "security": {
       "csp": null
     }

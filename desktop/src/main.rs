@@ -13,19 +13,20 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::collections::VecDeque;
 use std::io::{BufRead, BufReader};
-use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
-use std::collections::VecDeque;
+use std::path::{Path, PathBuf};
+use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::TrayIconBuilder;
-use tauri::{Manager, WindowEvent};
+use tauri::utils::config::Color;
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 /// How long to wait for the backend to announce its URL before giving up.
 const READY_TIMEOUT: Duration = Duration::from_secs(90);
@@ -72,7 +73,9 @@ fn terminate_group(pid: u32) {
     }
     #[cfg(windows)]
     {
-        let _ = Command::new("taskkill").args(["/PID", &pid.to_string(), "/T", "/F"]).output();
+        let _ = Command::new("taskkill")
+            .args(["/PID", &pid.to_string(), "/T", "/F"])
+            .output();
     }
 }
 
@@ -89,7 +92,9 @@ fn pid_file() -> PathBuf {
 /// is about process hygiene, not availability.
 fn reap_previous_backend() {
     let path = pid_file();
-    let Ok(text) = std::fs::read_to_string(&path) else { return };
+    let Ok(text) = std::fs::read_to_string(&path) else {
+        return;
+    };
     if let Ok(pid) = text.trim().parse::<u32>() {
         #[cfg(unix)]
         {
@@ -159,7 +164,9 @@ fn version_manager_roots() -> Vec<PathBuf> {
 fn installed_node_binaries() -> Vec<PathBuf> {
     let mut found = Vec::new();
     for root in version_manager_roots() {
-        let Ok(entries) = std::fs::read_dir(&root) else { continue };
+        let Ok(entries) = std::fs::read_dir(&root) else {
+            continue;
+        };
         for entry in entries.flatten() {
             // nvm and volta put the binary in <version>/bin; fnm adds an
             // `installation` level.
@@ -191,7 +198,9 @@ fn resolve_node_bin() -> Result<Option<PathBuf>, String> {
                  required ^{}.{}.0 || >=24",
                 MIN_NODE.0, MIN_NODE.1,
             )),
-            None => Err(format!("{NODE_BIN_OVERRIDE} does not contain a runnable node")),
+            None => Err(format!(
+                "{NODE_BIN_OVERRIDE} does not contain a runnable node"
+            )),
         };
     }
 
@@ -220,7 +229,10 @@ fn resolve_node_bin() -> Result<Option<PathBuf>, String> {
 
 /// Repository root, resolved from this crate's location.
 fn repository_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .to_path_buf()
 }
 
 /// Spawn the backend and block until it announces its URL.
@@ -252,8 +264,14 @@ fn start_backend(backend: &Backend) -> Result<String, String> {
     let _ = std::fs::write(pid_file(), child.id().to_string());
     BACKEND_GROUP.store(child.id() as i32, Ordering::SeqCst);
 
-    let stdout = child.stdout.take().ok_or("the harness produced no stdout")?;
-    let stderr = child.stderr.take().ok_or("the harness produced no stderr")?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or("the harness produced no stdout")?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or("the harness produced no stderr")?;
     *backend.0.lock().unwrap() = Some(child);
 
     // Drain stderr, keeping a bounded tail. Draining is not optional: a piped
@@ -281,7 +299,12 @@ fn start_backend(backend: &Backend) -> Result<String, String> {
             if let Some(rest) = line.split_once("dsh web: ") {
                 // The line may carry a trailing LAN address; the loopback URL
                 // is the first whitespace-delimited token after the marker.
-                let url = rest.1.split_whitespace().next().unwrap_or_default().to_string();
+                let url = rest
+                    .1
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or_default()
+                    .to_string();
                 let _ = tx.send(Ok(url));
                 return;
             }
@@ -293,15 +316,26 @@ fn start_backend(backend: &Backend) -> Result<String, String> {
     let outcome = match rx.recv_timeout(READY_TIMEOUT) {
         Ok(Ok(url)) => return Ok(url),
         Ok(Err(message)) => message,
-        Err(_) => format!("the harness did not become ready within {}s", READY_TIMEOUT.as_secs()),
+        Err(_) => format!(
+            "the harness did not become ready within {}s",
+            READY_TIMEOUT.as_secs()
+        ),
     };
     // Give the stderr drain a moment to catch the tail of a fast crash.
     std::thread::sleep(Duration::from_millis(200));
-    let tail = diagnostics.lock().unwrap().iter().cloned().collect::<Vec<_>>();
+    let tail = diagnostics
+        .lock()
+        .unwrap()
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
     Err(if tail.is_empty() {
         outcome
     } else {
-        format!("{outcome}\n\nLast output from the harness:\n{}", tail.join("\n"))
+        format!(
+            "{outcome}\n\nLast output from the harness:\n{}",
+            tail.join("\n")
+        )
     })
 }
 
@@ -348,9 +382,18 @@ extern "C" fn on_terminating_signal(signal: i32) {
 #[cfg(unix)]
 fn install_signal_handlers() {
     unsafe {
-        libc::signal(libc::SIGTERM, on_terminating_signal as *const () as libc::sighandler_t);
-        libc::signal(libc::SIGINT, on_terminating_signal as *const () as libc::sighandler_t);
-        libc::signal(libc::SIGHUP, on_terminating_signal as *const () as libc::sighandler_t);
+        libc::signal(
+            libc::SIGTERM,
+            on_terminating_signal as *const () as libc::sighandler_t,
+        );
+        libc::signal(
+            libc::SIGINT,
+            on_terminating_signal as *const () as libc::sighandler_t,
+        );
+        libc::signal(
+            libc::SIGHUP,
+            on_terminating_signal as *const () as libc::sighandler_t,
+        );
     }
 }
 
@@ -373,21 +416,31 @@ fn focus_main_window(app: &tauri::AppHandle) {
 /// because duplicating it into a native menu would give two controls for one
 /// piece of state and no way to keep them agreeing.
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
-    let edit = Submenu::with_items(app, "Edit", true, &[
-        &PredefinedMenuItem::undo(app, None)?,
-        &PredefinedMenuItem::redo(app, None)?,
-        &PredefinedMenuItem::separator(app)?,
-        &PredefinedMenuItem::cut(app, None)?,
-        &PredefinedMenuItem::copy(app, None)?,
-        &PredefinedMenuItem::paste(app, None)?,
-        &PredefinedMenuItem::select_all(app, None)?,
-    ])?;
-    let window = Submenu::with_items(app, "Window", true, &[
-        &PredefinedMenuItem::minimize(app, None)?,
-        &PredefinedMenuItem::fullscreen(app, None)?,
-        &PredefinedMenuItem::separator(app)?,
-        &PredefinedMenuItem::close_window(app, None)?,
-    ])?;
+    let edit = Submenu::with_items(
+        app,
+        "Edit",
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, None)?,
+            &PredefinedMenuItem::redo(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )?;
+    let window = Submenu::with_items(
+        app,
+        "Window",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, None)?,
+            &PredefinedMenuItem::fullscreen(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::close_window(app, None)?,
+        ],
+    )?;
     Menu::with_items(app, &[&edit, &window])
 }
 
@@ -397,7 +450,11 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &PredefinedMenuItem::separator(app)?, &quit])?;
     TrayIconBuilder::new()
-        .icon(app.default_window_icon().cloned().ok_or(tauri::Error::UnknownPath)?)
+        .icon(
+            app.default_window_icon()
+                .cloned()
+                .ok_or(tauri::Error::UnknownPath)?,
+        )
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -435,8 +492,17 @@ fn main() {
                     std::process::exit(1);
                 }
             };
-            let window = app.get_webview_window("main").ok_or("main window missing")?;
-            window.navigate(url.parse()?)?;
+            // Build the webview with its final URL. Creating it from the
+            // bundled placeholder and navigating during setup races WebKit's
+            // first navigation-policy decision on macOS, which prints a
+            // WasNavigationIntercepted native stack even though the page
+            // eventually loads.
+            WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url.parse()?))
+                .title("DeepSeek FUI")
+                .inner_size(1280.0, 800.0)
+                .min_inner_size(640.0, 480.0)
+                .background_color(Color(6, 12, 24, 255))
+                .build()?;
             app.set_menu(build_menu(app.handle())?)?;
             build_tray(app.handle())?;
             Ok(())

@@ -2,6 +2,10 @@ CLAUDE.local.md
 .env
 node_modules/
 lib/
+# f-ui's source helper uses an upstream `src/lib/` directory; it is source,
+# not a TypeScript build output.
+!packages/client/ui-fui/src/lib/
+!packages/client/ui-fui/src/lib/cn.ts
 *.tsbuildinfo
 pnpm-debug.log
 .pnpm-store/

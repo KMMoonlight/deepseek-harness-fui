@@ -277,3 +277,110 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+:global(body[data-fui-surface]) .section,
+:global(body[data-fui-surface]) .search input,
+:global(body[data-fui-surface]) .failure button {
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .search input {
+  border-color: var(--fui-line);
+  border-radius: 0;
+  background: var(--fui-bg);
+}
+
+:global(body[data-fui-surface]) .search input:focus-visible {
+  border-color: var(--fui-primary);
+  box-shadow: 0 0 0 1px var(--fui-primary-line);
+}
+
+:global(body[data-fui-surface]) .catalogHeading {
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--fui-line);
+}
+
+:global(body[data-fui-surface]) .catalogHeading h3 {
+  color: var(--fui-warn);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .catalogHeading span,
+:global(body[data-fui-surface]) .status,
+:global(body[data-fui-surface]) .cardTrailing,
+:global(body[data-fui-surface]) .details dt {
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .cards {
+  gap: 8px;
+}
+
+:global(body[data-fui-surface]) .card {
+  border-color: var(--fui-line);
+  border-radius: 0;
+  background: var(--fui-panel-bg);
+}
+
+:global(body[data-fui-surface]) .card[data-open='true'] {
+  border-color: var(--fui-primary-line-strong);
+  box-shadow: none;
+}
+
+:global(body[data-fui-surface]) .cardContent:hover,
+:global(body[data-fui-surface]) .card[data-open='true'] > .cardContent {
+  background: var(--fui-primary-soft);
+}
+
+:global(body[data-fui-surface]) .cardTitle {
+  color: var(--fui-primary);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+:global(body[data-fui-surface]) .statusDot {
+  border-radius: 0;
+}
+
+:global(body[data-fui-surface]) .configTag {
+  border: 1px solid var(--fui-line);
+  border-radius: 0;
+  background: var(--fui-line-ghost);
+  color: var(--fui-text-dim);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .configTag[data-enabled='true'] {
+  border-color: var(--fui-ok-line);
+  background: var(--fui-ok-soft);
+  color: var(--fui-ok);
+}
+
+:global(body[data-fui-surface]) .cardDetails {
+  border-top-style: dashed;
+  border-top-color: var(--fui-line);
+  background: var(--fui-bg);
+}
+
+:global(body[data-fui-surface]) .entryValue {
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .failure button {
+  border-color: var(--fui-danger-line);
+  border-radius: 0;
+  background: var(--fui-danger-soft);
+}
+
+:global(body[data-fui-surface]) .failure button:active,
+:global(body[data-fui-surface]) .cardContent:active {
+  transform: translate(1px, 1px);
+}

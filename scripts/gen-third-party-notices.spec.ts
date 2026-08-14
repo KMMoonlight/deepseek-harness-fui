@@ -4,6 +4,9 @@ import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import {
   CLAUDE_AGENT_SDK_PACKAGE,
+  SPACE_MONO_FONT_LICENSE,
+  SPACE_MONO_FONT_PACKAGE,
+  SPACE_MONO_LICENSE_OUT,
   claudeDistributionFromManifest,
   collectPythonDependencies,
   isOwnerAuthorizedRuntime,
@@ -13,6 +16,7 @@ import {
   parsePyprojectRequirements,
   parseVendoredRows,
   render,
+  spaceMonoLicenseText,
   tierExternalDeps,
   virtualManifest,
 } from './gen-third-party-notices.ts'
@@ -27,7 +31,12 @@ describe('THIRD_PARTY_NOTICES.md', () => {
   it('matches what the generator produces from the current manifests', () => {
     const generated = render()
     expect(generated).toContain('It depends on the third-party software listed below.')
+    expect(generated).toContain(`complete license at [\`${SPACE_MONO_LICENSE_OUT}\`]`)
     expect(readFileSync(resolve(root, 'THIRD_PARTY_NOTICES.md'), 'utf8'), 'stale notices — run `pnpm run gen-third-party-notices`').toBe(generated)
+    expect(
+      readFileSync(resolve(root, SPACE_MONO_LICENSE_OUT), 'utf8'),
+      'stale Space Mono license asset — run `pnpm run gen-third-party-notices`',
+    ).toBe(spaceMonoLicenseText())
   })
 })
 
@@ -271,13 +280,27 @@ describe('isPermissive', () => {
   })
 })
 
-describe('official Claude distribution authorization', () => {
+describe('runtime distribution authorizations', () => {
   it('authorizes only the direct SDK identity without relabeling its license', () => {
-    expect(isOwnerAuthorizedRuntime(CLAUDE_AGENT_SDK_PACKAGE)).toBe(true)
-    expect(isOwnerAuthorizedRuntime(`${CLAUDE_AGENT_SDK_PACKAGE}-linux-x64`))
+    expect(isOwnerAuthorizedRuntime(CLAUDE_AGENT_SDK_PACKAGE, 'future declared terms')).toBe(true)
+    expect(isOwnerAuthorizedRuntime(
+      `${CLAUDE_AGENT_SDK_PACKAGE}-linux-x64`,
+      'future declared terms',
+    ))
       .toBe(false)
-    expect(isOwnerAuthorizedRuntime('@anthropic-ai/unrelated')).toBe(false)
+    expect(isOwnerAuthorizedRuntime('@anthropic-ai/unrelated', 'future declared terms')).toBe(false)
     expect(isPermissive('SEE LICENSE IN README.md')).toBe(false)
+  })
+
+  it('authorizes only Space Mono under the reviewed OFL declaration', () => {
+    expect(isOwnerAuthorizedRuntime(
+      SPACE_MONO_FONT_PACKAGE,
+      SPACE_MONO_FONT_LICENSE,
+    )).toBe(true)
+    expect(isOwnerAuthorizedRuntime(SPACE_MONO_FONT_PACKAGE, 'future terms')).toBe(false)
+    expect(isOwnerAuthorizedRuntime('@fontsource/unrelated', SPACE_MONO_FONT_LICENSE)).toBe(false)
+    expect(isPermissive(SPACE_MONO_FONT_LICENSE)).toBe(false)
+    expect(spaceMonoLicenseText()).toContain('SIL OPEN FONT LICENSE Version 1.1')
   })
 
   it('derives version-independent platform payloads from the official SDK manifest', () => {

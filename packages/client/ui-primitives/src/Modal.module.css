@@ -101,3 +101,46 @@
   gap: 8px;
   padding: 0 24px;
 }
+
+:global(body[data-fui-surface]) .mask {
+  background: color-mix(in srgb, var(--fui-bg) 78%, transparent);
+  backdrop-filter: blur(1px);
+}
+
+:global(body[data-fui-surface]) .dialog {
+  border-color: var(--fui-line-strong);
+  border-radius: 0;
+  background: var(--fui-panel-solid);
+  box-shadow: 6px 6px 0 color-mix(in srgb, var(--fui-primary) 10%, transparent);
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .header {
+  border-bottom: 1px solid var(--fui-line);
+}
+
+:global(body[data-fui-surface]) .title {
+  color: var(--fui-primary);
+  font-family: var(--fui-font);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .description {
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .close {
+  border: 1px solid transparent;
+  border-radius: 0;
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .close:hover {
+  color: var(--fui-danger);
+  border-color: var(--fui-danger-line);
+  background: var(--fui-danger-soft);
+}

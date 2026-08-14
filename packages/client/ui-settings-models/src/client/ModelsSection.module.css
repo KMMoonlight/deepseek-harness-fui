@@ -673,3 +673,167 @@ select.input {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+
+/* FUI model console: dense square controls and ruled configuration modules. */
+:global(body[data-fui-surface]) .section {
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .title {
+  color: var(--fui-warn);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .intro,
+:global(body[data-fui-surface]) .advancedHint,
+:global(body[data-fui-surface]) .modelCatalogMeta,
+:global(body[data-fui-surface]) .modelEmpty,
+:global(body[data-fui-surface]) .editorRoute {
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .rows {
+  gap: 8px;
+  margin-top: 8px;
+}
+
+:global(body[data-fui-surface]) .rowCard,
+:global(body[data-fui-surface]) .editor,
+:global(body[data-fui-surface]) .addButton,
+:global(body[data-fui-surface]) .addCard,
+:global(body[data-fui-surface]) .setupCard,
+:global(body[data-fui-surface]) .modelEntry,
+:global(body[data-fui-surface]) .modelEmpty,
+:global(body[data-fui-surface]) .candidate {
+  border-radius: 0;
+}
+
+:global(body[data-fui-surface]) .rowCard,
+:global(body[data-fui-surface]) .modelEntry {
+  border-color: var(--fui-line);
+  background: var(--fui-panel-bg);
+}
+
+:global(body[data-fui-surface]) .editor,
+:global(body[data-fui-surface]) .addCard,
+:global(body[data-fui-surface]) .setupCard {
+  border: 1px dashed var(--fui-line);
+  background: var(--fui-bg);
+}
+
+:global(body[data-fui-surface]) .rowName,
+:global(body[data-fui-surface]) .editorTitle,
+:global(body[data-fui-surface]) .modelCatalogTitle {
+  color: var(--fui-primary);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+:global(body[data-fui-surface]) .rowTag {
+  border-color: var(--fui-line);
+  border-radius: 0;
+  color: var(--fui-text-dim);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .primaryButton,
+:global(body[data-fui-surface]) .secondaryButton,
+:global(body[data-fui-surface]) .dangerButton,
+:global(body[data-fui-surface]) .addButton,
+:global(body[data-fui-surface]) .linkButton,
+:global(body[data-fui-surface]) .addModelButton,
+:global(body[data-fui-surface]) .iconButton,
+:global(body[data-fui-surface]) .input,
+:global(body[data-fui-surface]) .customizedSummary {
+  border-radius: 0;
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .primaryButton {
+  border: 1px solid var(--fui-primary);
+  background: var(--fui-primary);
+  color: var(--fui-bg);
+}
+
+:global(body[data-fui-surface]) .secondaryButton,
+:global(body[data-fui-surface]) .addButton,
+:global(body[data-fui-surface]) .addModelButton,
+:global(body[data-fui-surface]) .iconButton {
+  border-color: var(--fui-line-strong);
+  background: var(--fui-panel-bg);
+  color: var(--fui-text);
+}
+
+:global(body[data-fui-surface]) .secondaryButton:hover:not(:disabled),
+:global(body[data-fui-surface]) .addButton:hover:not(:disabled),
+:global(body[data-fui-surface]) .addModelButton:hover:not(:disabled),
+:global(body[data-fui-surface]) .iconButton:hover:not(:disabled),
+:global(body[data-fui-surface]) .linkButton:hover:not(:disabled) {
+  border-color: var(--fui-primary-line-strong);
+  background: var(--fui-primary-soft);
+  color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .dangerButton,
+:global(body[data-fui-surface]) .iconButtonDanger {
+  color: var(--fui-danger);
+}
+
+:global(body[data-fui-surface]) .input {
+  border-color: var(--fui-line);
+  background-color: var(--fui-bg);
+  color: var(--fui-text);
+}
+
+:global(body[data-fui-surface]) .input:focus {
+  border-color: var(--fui-primary);
+  box-shadow: 0 0 0 1px var(--fui-primary-line);
+}
+
+:global(body[data-fui-surface]) .customized,
+:global(body[data-fui-surface]) .modelCatalog {
+  border-top-style: dashed;
+  border-top-color: var(--fui-line);
+}
+
+:global(body[data-fui-surface]) .modelEmpty,
+:global(body[data-fui-surface]) .addButton {
+  border-color: var(--fui-line-strong);
+}
+
+:global(body[data-fui-surface]) .primaryButton:active:not(:disabled),
+:global(body[data-fui-surface]) .secondaryButton:active:not(:disabled),
+:global(body[data-fui-surface]) .dangerButton:active:not(:disabled),
+:global(body[data-fui-surface]) .addButton:active:not(:disabled),
+:global(body[data-fui-surface]) .linkButton:active:not(:disabled),
+:global(body[data-fui-surface]) .addModelButton:active:not(:disabled),
+:global(body[data-fui-surface]) .iconButton:active:not(:disabled) {
+  transform: translate(1px, 1px);
+}
+
+@media (max-width: 640px) {
+  :global(body[data-fui-surface]) .rowHead,
+  :global(body[data-fui-surface]) .modelListHead {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  :global(body[data-fui-surface]) .rowActions {
+    margin-left: 0;
+  }
+
+  :global(body[data-fui-surface]) .modelRow {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  :global(body[data-fui-surface]) .modelRow > :nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
