@@ -21,7 +21,8 @@ function themeTokens(): Set<string> {
     const css = readFileSync(join(THEME_STYLES, file), 'utf8')
     // Definitions only (`--token:`), not references (`var(--token)`).
     for (const match of css.matchAll(/(--dsw-(?:alias|specific)-[a-z0-9-]+)\s*:/g)) {
-      names.add(match[1])
+      const [, name] = match
+      if (name !== undefined) names.add(name)
     }
   }
   return names
@@ -30,7 +31,12 @@ function themeTokens(): Set<string> {
 /** Token names the bridge restates. */
 function bridgeTokens(): Set<string> {
   const css = readFileSync(BRIDGE, 'utf8')
-  return new Set([...css.matchAll(/(--dsw-(?:alias|specific)-[a-z0-9-]+)\s*:/g)].map(m => m[1]))
+  const names = new Set<string>()
+  for (const match of css.matchAll(/(--dsw-(?:alias|specific)-[a-z0-9-]+)\s*:/g)) {
+    const [, name] = match
+    if (name !== undefined) names.add(name)
+  }
+  return names
 }
 
 describe('dsw alias bridge', () => {
@@ -48,6 +54,7 @@ describe('dsw alias bridge', () => {
     const css = readFileSync(BRIDGE, 'utf8')
     const offenders: string[] = []
     for (const [, name, value] of css.matchAll(/(--dsw-(?:alias|specific)-[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
+      if (name === undefined || value === undefined) continue
       const v = value.trim()
       if (v.startsWith('var(--fui-') || v === 'transparent') continue
       // The four mask roles need alpha over the ground and f-ui exposes no
@@ -60,7 +67,8 @@ describe('dsw alias bridge', () => {
 
   it('scopes the whole sheet to the FUI surface attribute', () => {
     const css = readFileSync(BRIDGE, 'utf8')
-    const selectors = [...css.matchAll(/^([^@/\s][^{]*)\{/gm)].map(m => m[1].trim())
+    const selectors = [...css.matchAll(/^([^@/\s][^{]*)\{/gm)]
+      .flatMap(m => m[1] === undefined ? [] : [m[1].trim()])
     expect(selectors).toEqual(['body[data-fui-surface]'])
   })
 })

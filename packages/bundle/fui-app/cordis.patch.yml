@@ -20,6 +20,16 @@
     - id: ui-fui-surface
       name: '@deepseek-ai/dsh-client-ui-fui-surface'
 
+    - id: ui-fui-layout
+      name: '@deepseek-ai/dsh-client-ui-fui-layout'
+
+# The stock frame steps aside for the fork above. Both declare the same four
+# child slots and the `root` registration is single-kind, so mounting either
+# is fine and mounting both fails at load — the disable is what makes the
+# swap legal rather than a conflict.
+- id: ui-layout
+  disabled: true
+
 - id: system-prompt
   config:
     persona: >-

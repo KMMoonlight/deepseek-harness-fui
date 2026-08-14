@@ -434,8 +434,11 @@
   name: '@deepseek-ai/dsh-client-ui-theme'
 - id: locale
   name: '@deepseek-ai/dsh-client-locale'
+# == @deepseek-ai/dsh-web-app, patched by @deepseek-ai/dsh-fui-app
 - id: ui-layout
   name: '@deepseek-ai/dsh-client-ui-layout'
+  disabled: true
+# == @deepseek-ai/dsh-web-app
 - id: ui-sidebar
   name: '@deepseek-ai/dsh-client-ui-sidebar'
 - id: ui-settings
@@ -490,3 +493,8 @@
   name: '@deepseek-ai/dsh-agent-presets'
   config:
     default: standard
+# == @deepseek-ai/dsh-fui-app
+- id: ui-fui-surface
+  name: '@deepseek-ai/dsh-client-ui-fui-surface'
+- id: ui-fui-layout
+  name: '@deepseek-ai/dsh-client-ui-fui-layout'
