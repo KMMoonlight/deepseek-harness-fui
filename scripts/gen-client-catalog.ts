@@ -31,6 +31,33 @@ const OUT = 'packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
 /** Source globs: every workspace package's sources, `.tsx` included (a contract may live in one). */
 const SOURCE_GLOBS = ['packages/*/*/src/**/*.ts', 'packages/*/*/src/**/*.tsx']
 
+/**
+ * Packages whose slot declarations deliberately mirror another package's.
+ *
+ * A fork of a frame package restates the same `children` map on purpose — the
+ * roster mounts exactly one of the pair, and `root` being single-kind is what
+ * enforces that. To this generator the pair reads as one contract documented
+ * twice, which it cannot resolve and should not guess at. Excluding the fork
+ * keeps the original as the single documentation authority; the fork's own
+ * behaviour is covered by the specs it inherited.
+ *
+ * An entry here is a claim that the package adds no slot of its own. Adding one
+ * means removing the entry and giving that slot its own teachable contract.
+ */
+const MIRRORED_SLOT_PACKAGES: ReadonlySet<string> = new Set([
+  '@deepseek-ai/dsh-client-ui-fui-layout',
+])
+
+/** Repo-relative source roots of {@link MIRRORED_SLOT_PACKAGES}. */
+const MIRRORED_SOURCE_ROOTS: readonly string[] = [
+  'packages/client/ui-fui-layout/',
+]
+
+/** Whether a repo-relative path belongs to a mirroring package. */
+function isMirroredSource(rel: string): boolean {
+  return MIRRORED_SOURCE_ROOTS.some(prefix => rel.startsWith(prefix))
+}
+
 /** Slot cardinalities the contract allows. */
 const KINDS = ['single', 'list', 'keyed', 'chain'] as const
 /** Slot data scopes the contract allows. */
@@ -130,10 +157,12 @@ export interface SlotEntry {
  * @throws when any declared slot is unteachable or the scan contradicts itself.
  */
 export function collectSlotEntries(scanRoot: string): SlotEntry[] {
-  const files = scanSlotFiles(scanRoot, SOURCE_GLOBS)
+  const files = scanSlotFiles(scanRoot, SOURCE_GLOBS).filter(file => !MIRRORED_SLOT_PACKAGES.has(file.package))
   const declarations = files.flatMap(file => slotDeclarations(file))
   const registrations = files.flatMap(file => slotRegistrations(file))
-  const types = indexExportedTypes(scanRoot, SOURCE_GLOBS)
+  // The mirror's identical interface names would register as ambiguous and be
+  // dropped, taking the original's with them.
+  const types = indexExportedTypes(scanRoot, SOURCE_GLOBS, isMirroredSource)
   const problems = validateSlotContracts(declarations, registrations, types)
   if (problems.length > 0) {
     throw new Error(`gen-client-catalog: ${String(problems.length)} contract violation(s):\n${problems.map(problem => `  ${problem}`).join('\n')}`)

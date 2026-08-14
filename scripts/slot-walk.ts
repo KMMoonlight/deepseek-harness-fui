@@ -115,14 +115,23 @@ export function scanSlotFiles(scanRoot: string, patterns: readonly string[]): Sc
  * documentation IS the teaching material a registrant needs.
  * @param scanRoot - repository root the patterns resolve against.
  * @param patterns - glob(s) selecting the TypeScript/TSX files to index.
+ * @param skip - optional predicate over the repo-relative path; a file it
+ * accepts is not indexed. Needed when one package deliberately mirrors
+ * another's declarations, because identical names would otherwise cancel each
+ * other out as ambiguous and strand the original's slots.
  * @returns name → declaration, with names declared more than once dropped as ambiguous.
  */
-export function indexExportedTypes(scanRoot: string, patterns: readonly string[]): Map<string, TypeDeclaration> {
+export function indexExportedTypes(
+  scanRoot: string,
+  patterns: readonly string[],
+  skip: (rel: string) => boolean = () => false,
+): Map<string, TypeDeclaration> {
   const index = new Map<string, TypeDeclaration>()
   const ambiguous = new Set<string>()
   const rels = [...new Set(globSync(patterns as string[], { cwd: scanRoot })
     .map(path => path.split(sep).join('/')))].sort()
   for (const rel of rels) {
+    if (skip(rel)) continue
     const abs = resolve(scanRoot, rel)
     const sf = ts.createSourceFile(abs, readFileSync(abs, 'utf8'), ts.ScriptTarget.Latest, true, scriptKindOf(rel))
     for (const statement of sf.statements) {
