@@ -41,4 +41,6 @@ cargo run
 - **Development launch only** — the backend is spawned through `pnpm` from the repository root. A packaged application must ship a Node runtime and the harness as a sidecar and spawn that instead; until then, launching from Finder fails because GUI processes on macOS do not inherit the shell `PATH`.
 - **Boot failure has no dialog** — a backend that never announces its URL aborts setup with a message on stderr. A user launching from an icon sees the window close.
 - **The 90s readiness timeout is a guess** — it is generous for a warm checkout and may be short for a cold one on slow hardware.
-- **No single-instance guard, tray, menu, or window-state persistence yet** — a second launch starts a second backend.
+- **Tray, menu, and window-state behaviour is unverified** — all three are registered and the app starts clean, but their correctness is on-screen and this build was exercised headlessly. Single-instance *is* verified: a second launch exits without starting a second backend.
+- **Window state is not saved on SIGTERM** — the signal handler restores the default disposition and re-raises, so Tauri's exit path never runs and the state plugin never writes. Reaping the backend matters more than remembering a window size, but a normal close or tray quit is the only path that persists geometry.
+- **The application icon is a generated placeholder** — a real brand icon is still needed, in the per-platform sizes bundling wants.

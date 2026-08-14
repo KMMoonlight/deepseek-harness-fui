@@ -22,6 +22,8 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::tray::TrayIconBuilder;
 use tauri::{Manager, WindowEvent};
 
 /// How long to wait for the backend to announce its URL before giving up.
@@ -208,9 +210,70 @@ fn install_signal_handlers() {
 #[cfg(not(unix))]
 fn install_signal_handlers() {}
 
+/// Bring the main window forward, restoring it if it was minimised or hidden.
+fn focus_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+/// Build the application menu.
+///
+/// Only the window and edit roles are populated. Everything the harness itself
+/// owns — sessions, settings, the model picker — stays in the web surface,
+/// because duplicating it into a native menu would give two controls for one
+/// piece of state and no way to keep them agreeing.
+fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    let edit = Submenu::with_items(app, "Edit", true, &[
+        &PredefinedMenuItem::undo(app, None)?,
+        &PredefinedMenuItem::redo(app, None)?,
+        &PredefinedMenuItem::separator(app)?,
+        &PredefinedMenuItem::cut(app, None)?,
+        &PredefinedMenuItem::copy(app, None)?,
+        &PredefinedMenuItem::paste(app, None)?,
+        &PredefinedMenuItem::select_all(app, None)?,
+    ])?;
+    let window = Submenu::with_items(app, "Window", true, &[
+        &PredefinedMenuItem::minimize(app, None)?,
+        &PredefinedMenuItem::fullscreen(app, None)?,
+        &PredefinedMenuItem::separator(app)?,
+        &PredefinedMenuItem::close_window(app, None)?,
+    ])?;
+    Menu::with_items(app, &[&edit, &window])
+}
+
+/// Seat the tray icon: a way back to the window after it is closed.
+fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let show = MenuItem::with_id(app, "show", "Show DeepSeek FUI", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show, &PredefinedMenuItem::separator(app)?, &quit])?;
+    TrayIconBuilder::new()
+        .icon(app.default_window_icon().cloned().ok_or(tauri::Error::UnknownPath)?)
+        .menu(&menu)
+        .show_menu_on_left_click(true)
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "show" => focus_main_window(app),
+            // Reaping rides the Exit run event, so quitting here is enough.
+            "quit" => app.exit(0),
+            _ => {}
+        })
+        .build(app)?;
+    Ok(())
+}
+
 fn main() {
     install_signal_handlers();
     tauri::Builder::default()
+        // A second launch must not start a second backend; it hands focus to
+        // the running window instead.
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            focus_main_window(app);
+        }))
+        // Window geometry survives restarts. Registered after single-instance,
+        // which the plugin's own guidance asks for.
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .manage(Backend(Mutex::new(None)))
         .setup(|app| {
             let backend = app.state::<Backend>();
@@ -227,6 +290,8 @@ fn main() {
             };
             let window = app.get_webview_window("main").ok_or("main window missing")?;
             window.navigate(url.parse()?)?;
+            app.set_menu(build_menu(app.handle())?)?;
+            build_tray(app.handle())?;
             Ok(())
         })
         .on_window_event(|window, event| {
