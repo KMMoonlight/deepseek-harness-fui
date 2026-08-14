@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 const src = (rel: string): string => fileURLToPath(new URL(rel, import.meta.url))
 const STANDALONE_ERROR = 'apps/web is not a standalone application: bare Vite cannot inject window.__DSH_BOOT__. '
@@ -90,7 +91,10 @@ function npmPackageOf(id: string): string | undefined {
 }
 
 export default defineConfig({
-  plugins: [rejectStandaloneServe(), react()],
+  // Tailwind builds the FUI utility stylesheet once for the whole application.
+  // Its content scan is widened past this directory by `@source` directives in
+  // src/fui.css, because client plugin packages never enter this Vite graph.
+  plugins: [rejectStandaloneServe(), react(), tailwindcss()],
   build: {
     sourcemap: true,
     rollupOptions: {
@@ -143,6 +147,7 @@ export default defineConfig({
       { find: /^@deepseek-ai\/dsh-client-web-react$/, replacement: src('../../packages/client/web-react/src/index.ts') },
       { find: /^@deepseek-ai\/dsh-client-ui-slots$/, replacement: src('../../packages/client/ui-slots/src/index.ts') },
       { find: /^@deepseek-ai\/dsh-client-ui-primitives$/, replacement: src('../../packages/client/ui-primitives/src/index.ts') },
+      { find: /^@deepseek-ai\/dsh-client-ui-fui$/, replacement: src('../../packages/client/ui-fui/src/index.ts') },
       { find: /^@deepseek-ai\/dsh-client-ui-attachment$/, replacement: src('../../packages/client/ui-attachment/src/index.ts') },
       { find: /^@deepseek-ai\/dsh-client-schema-form$/, replacement: src('../../packages/client/schema-form/src/index.ts') },
       { find: /^@deepseek-ai\/dsh-client-modules\/client$/, replacement: src('../../packages/client/modules/src/client/index.ts') },

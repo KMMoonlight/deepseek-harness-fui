@@ -4,7 +4,12 @@
  * in @deepseek-ai/dsh-client-web; this file only finds the mount point.
  */
 import { AppWebEntry } from '@deepseek-ai/dsh-client-web'
+import { mountFuiProbe } from './fui-probe.tsx'
+import './fui.css'
 
 const el = document.getElementById('root')
 if (el === null) throw new Error('web app: missing #root')
 void new AppWebEntry(el).run()
+
+// Temporary; see fui-probe.tsx.
+mountFuiProbe()

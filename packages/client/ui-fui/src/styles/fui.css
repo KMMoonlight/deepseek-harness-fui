@@ -156,7 +156,11 @@
   --font-fui: var(--fui-font);
 }
 
-body {
+/* VENDOR EDIT (the only one in this file): upstream claims `body`
+   unconditionally. This fork serves the stock and FUI surfaces from one build,
+   so the page claim is opt-in — the FUI layout package sets the attribute, and
+   the stock surface never does. Re-apply this scoping after any re-sync. */
+body[data-fui-surface] {
   background-color: var(--fui-bg);
   color: var(--fui-text);
   font-family: var(--font-fui);

@@ -26,6 +26,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@deepseek-ai/dsh-client-ui-fui": "workspace:^",
     "@deepseek-ai/dsh-client-web": "workspace:^",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -38,14 +39,16 @@
     "@deepseek-ai/dsh-client-web-react": "workspace:^",
     "@deepseek-ai/dsh-cmdline": "workspace:^",
     "@deepseek-ai/dsh-pwsh-local": "workspace:^",
+    "@tailwindcss/vite": "^4.1.13",
     "@types/node": "^22.0.0",
     "@types/react": "~18.3.1",
     "@types/react-dom": "~18.3.0",
     "@vitejs/plugin-react": "^4.0.0",
+    "fflate": "^0.8.2",
     "playwright": "^1.49.0",
+    "tailwindcss": "^4.1.13",
     "typescript": "^6.0.3",
     "vite": "^6.0.0",
-    "vitest": "^4.1.8",
-    "fflate": "^0.8.2"
+    "vitest": "^4.1.8"
   }
 }

@@ -1,0 +1,40 @@
+/*
+ * The FUI utility stylesheet, built once for the whole application.
+ *
+ * Two deliberate omissions keep this shared build from restyling the stock
+ * surface, since `dsh web` and `dsh --profile fui` load the same dist:
+ *
+ * 1. No Tailwind preflight. `@import 'tailwindcss'` would pull in a global
+ *    element reset that fights ui-theme's own base sheet — visibly, the stock
+ *    UI loses its typography. Importing the theme and utilities layers alone
+ *    adds the utilities without touching anything already styled.
+ *
+ * 2. The vendored token sheet's page claim (FUI ground colour, text colour,
+ *    monospace face, coordinate grid) is scoped to `body[data-fui-surface]`
+ *    in the vendored file itself — the single vendor edit in this package.
+ *    That rule is wanted, but it is the FUI *surface* claiming the page, which
+ *    is the layout package's decision on the FUI profile, not something a
+ *    shared stylesheet imposes on both surfaces. Scoping it there rather than
+ *    reverting it here is deliberate: `revert-layer` cannot undo a declaration
+ *    the stock sheet never makes, and `body` has no competing font-family.
+ *
+ * Import order is load-bearing: theme layer first so `--fui-*` custom
+ * properties exist, then utilities that read them.
+ *
+ * `@source` extends the content scan past this app's directory. Client plugin
+ * packages never enter this Vite graph — they arrive at runtime as their own
+ * tsdown bundles through the client module system — so Tailwind would
+ * otherwise purge the utilities their class names depend on. Utilities are
+ * global by nature, which is what makes one application-level build correct
+ * for DOM that plugins render later. Every package whose sources emit FUI
+ * utility classes must be listed here.
+ */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import '@deepseek-ai/dsh-client-ui-fui/styles/fui.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@source '../../../packages/client/ui-fui/src';
+@source '../src';
