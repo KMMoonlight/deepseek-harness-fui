@@ -38,3 +38,6 @@ apps/web/dist/
 worktrees/
 .agents/worktrees/
 .typert-*/
+
+# Rust build artifacts for the desktop shell
+/desktop/target/

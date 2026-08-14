@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "DeepSeek FUI",
+  "version": "0.1.0",
+  "identifier": "ai.deepseek.fui",
+  "build": {
+    "frontendDist": "./placeholder"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "DeepSeek FUI",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 640,
+        "minHeight": 480,
+        "resizable": true,
+        "visible": true,
+        "backgroundColor": "#060c18"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png"
+    ]
+  }
+}

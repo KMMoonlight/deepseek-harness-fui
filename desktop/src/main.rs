@@ -1,0 +1,245 @@
+// The FUI desktop shell.
+//
+// The window is a view onto a `dsh --profile fui` process this app owns: it
+// spawns the backend on an OS-assigned port, reads the port back from the URL
+// line the web bundle prints, and points the webview at it.
+//
+// Out of process rather than embedded, for two reasons that are properties of
+// the harness rather than preferences. Client plugins are loaded by injecting
+// external <script> tags into the page, which a `file://` origin does not
+// serve; and Tauri uses the system webview, so there is no Node runtime in
+// this process to host the harness anyway. Loopback HTTP sidesteps both, and
+// the harness already fences `/api` to loopback authorities.
+
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
+use std::process::{Child, Command, Stdio};
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
+use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::Mutex;
+use std::time::Duration;
+
+use tauri::{Manager, WindowEvent};
+
+/// How long to wait for the backend to announce its URL before giving up.
+const READY_TIMEOUT: Duration = Duration::from_secs(90);
+
+/// Pid of the live backend's process group, readable from a signal handler.
+///
+/// The handler cannot take the mutex below — locking is not async-signal-safe —
+/// so the group id is mirrored here as a plain atomic that `killpg` can use
+/// directly.
+static BACKEND_GROUP: AtomicI32 = AtomicI32::new(0);
+
+/// The backend process this app owns, held so every exit path can reap it.
+struct Backend(Mutex<Option<Child>>);
+
+impl Backend {
+    /// Terminate the backend if it is still running. Idempotent.
+    ///
+    /// Signals the whole process group, not just the child. `pnpm dsh` is a
+    /// three-link chain — a launcher shim, the resolved pnpm, then the tsx
+    /// host — so killing only the process we spawned leaves the two that
+    /// actually hold the port. The child is put in its own group at spawn
+    /// precisely so this signal can reach all of them.
+    fn reap(&self) {
+        if let Some(mut child) = self.0.lock().unwrap().take() {
+            BACKEND_GROUP.store(0, Ordering::SeqCst);
+            terminate_group(child.id());
+            let _ = child.wait();
+        }
+    }
+}
+
+/// Signal a whole process group down, escalating if it does not go quietly.
+fn terminate_group(pid: u32) {
+    #[cfg(unix)]
+    unsafe {
+        if libc::killpg(pid as i32, libc::SIGTERM) != 0 {
+            // No group (spawn raced, or already reaped): fall back to the one pid.
+            libc::kill(pid as i32, libc::SIGTERM);
+        }
+        // The harness closes its server and sockets on SIGTERM; give it a
+        // moment before insisting.
+        std::thread::sleep(Duration::from_millis(600));
+        libc::killpg(pid as i32, libc::SIGKILL);
+    }
+    #[cfg(windows)]
+    {
+        let _ = Command::new("taskkill").args(["/PID", &pid.to_string(), "/T", "/F"]).output();
+    }
+}
+
+/// Path of the file recording the live backend's pid.
+fn pid_file() -> PathBuf {
+    std::env::temp_dir().join("deepseek-fui-backend.pid")
+}
+
+/// Kill a backend a previous run left behind.
+///
+/// A parent killed with SIGKILL runs no exit path, so its child outlives it.
+/// Reaping at startup keeps that orphan from accumulating across launches.
+/// It cannot strand the port — the backend binds an OS-assigned one — so this
+/// is about process hygiene, not availability.
+fn reap_previous_backend() {
+    let path = pid_file();
+    let Ok(text) = std::fs::read_to_string(&path) else { return };
+    if let Ok(pid) = text.trim().parse::<u32>() {
+        #[cfg(unix)]
+        {
+            // Signal 0 probes liveness; only then spend a real kill, so a
+            // recycled pid belonging to something else is left alone.
+            let alive = unsafe { libc::kill(pid as i32, 0) } == 0;
+            if alive {
+                terminate_group(pid);
+            }
+        }
+        #[cfg(not(unix))]
+        terminate_group(pid);
+    }
+    let _ = std::fs::remove_file(&path);
+}
+
+/// Repository root, resolved from this crate's location.
+fn repository_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()
+}
+
+/// Spawn the backend and block until it announces its URL.
+///
+/// Returns the URL, or a message fit to show a user: this runs before there is
+/// any window worth calling a UI, so a failure here has to explain itself.
+fn start_backend(backend: &Backend) -> Result<String, String> {
+    reap_previous_backend();
+
+    let root = repository_root();
+    let mut child = Command::new("pnpm")
+        .args(["dsh", "--profile", "fui", "--port", "0"])
+        .current_dir(&root)
+        // Own process group, so reap() can signal the whole `pnpm -> pnpm ->
+        // tsx` chain at once and so a Ctrl-C in a terminal parent does not
+        // race us to the child.
+        .process_group_compat()
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("could not start the harness ({e}). Is pnpm on PATH?"))?;
+
+    let _ = std::fs::write(pid_file(), child.id().to_string());
+    BACKEND_GROUP.store(child.id() as i32, Ordering::SeqCst);
+
+    let stdout = child.stdout.take().ok_or("the harness produced no stdout")?;
+    *backend.0.lock().unwrap() = Some(child);
+
+    // The URL line is the harness's readiness signal: the web bundle prints it
+    // only after its Loader tree settles, so a sibling row that failed to mount
+    // cannot announce a dead app.
+    let (tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    std::thread::spawn(move || {
+        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+            if let Some(rest) = line.split_once("dsh web: ") {
+                // The line may carry a trailing LAN address; the loopback URL
+                // is the first whitespace-delimited token after the marker.
+                let url = rest.1.split_whitespace().next().unwrap_or_default().to_string();
+                let _ = tx.send(Ok(url));
+                return;
+            }
+        }
+        // Ran out of output without a URL: the process died during boot.
+        let _ = tx.send(Err("the harness exited before it was ready".into()));
+    });
+
+    match rx.recv_timeout(READY_TIMEOUT) {
+        Ok(Ok(url)) => Ok(url),
+        Ok(Err(message)) => Err(message),
+        Err(_) => Err(format!("the harness did not become ready within {}s", READY_TIMEOUT.as_secs())),
+    }
+}
+
+/// `process_group(0)` where the platform has it, a no-op elsewhere.
+trait ProcessGroupCompat {
+    fn process_group_compat(&mut self) -> &mut Command;
+}
+
+impl ProcessGroupCompat for Command {
+    #[cfg(unix)]
+    fn process_group_compat(&mut self) -> &mut Command {
+        self.process_group(0)
+    }
+
+    #[cfg(not(unix))]
+    fn process_group_compat(&mut self) -> &mut Command {
+        self
+    }
+}
+
+/// Reap the backend when this process is asked to terminate.
+///
+/// Tauri installs no handler for these, so a SIGTERM — from a supervisor, a
+/// `killall`, or a logout — would otherwise tear the app down without running
+/// any exit path and strand the backend. SIGKILL still cannot be caught; that
+/// case is covered by reaping at the next startup.
+#[cfg(unix)]
+extern "C" fn on_terminating_signal(signal: i32) {
+    let group = BACKEND_GROUP.load(Ordering::SeqCst);
+    if group != 0 {
+        unsafe { libc::killpg(group, libc::SIGKILL) };
+    }
+    // Restore default disposition and re-raise, so the exit status is honest.
+    unsafe {
+        libc::signal(signal, libc::SIG_DFL);
+        libc::raise(signal);
+    }
+}
+
+/// Install the terminating-signal handlers.
+#[cfg(unix)]
+fn install_signal_handlers() {
+    unsafe {
+        libc::signal(libc::SIGTERM, on_terminating_signal as libc::sighandler_t);
+        libc::signal(libc::SIGINT, on_terminating_signal as libc::sighandler_t);
+        libc::signal(libc::SIGHUP, on_terminating_signal as libc::sighandler_t);
+    }
+}
+
+#[cfg(not(unix))]
+fn install_signal_handlers() {}
+
+fn main() {
+    install_signal_handlers();
+    tauri::Builder::default()
+        .manage(Backend(Mutex::new(None)))
+        .setup(|app| {
+            let backend = app.state::<Backend>();
+            let url = match start_backend(&backend) {
+                Ok(url) => url,
+                Err(message) => {
+                    // No window has been shown yet, so the dialog is the only
+                    // surface a user can be told on.
+                    tauri::async_runtime::block_on(async {
+                        eprintln!("deepseek-fui: {message}");
+                    });
+                    return Err(message.into());
+                }
+            };
+            let window = app.get_webview_window("main").ok_or("main window missing")?;
+            window.navigate(url.parse()?)?;
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            if matches!(event, WindowEvent::CloseRequested { .. }) {
+                window.app_handle().state::<Backend>().reap();
+            }
+        })
+        .build(tauri::generate_context!())
+        .expect("error building the FUI desktop shell")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                app.state::<Backend>().reap();
+                let _ = std::fs::remove_file(pid_file());
+            }
+        });
+}
