@@ -1,0 +1,306 @@
+/*
+ * f-ui 设计 token
+ *
+ * 深海军蓝底、钢蓝结构色、青绿高亮、琥珀标题的克制终端风:
+ * 辉光极弱,选中态用反色实心,进度用分段方块。
+ *
+ * 主题切换:变量同时写在 :root 和 [data-fui-theme="cyan"] 上。
+ * v1 只实装 cyan(默认)。后续新增主题(如 amber / green)时,
+ * 追加 [data-fui-theme="amber"] { ... } 覆盖同一组变量,
+ * 并在根元素上设置 data-fui-theme 即可,组件无需改动。
+ */
+
+:root,
+[data-fui-theme='cyan'] {
+  /* 底色 */
+  --fui-bg: #060c18; /* 深海军蓝 */
+  --fui-panel-bg: rgba(10, 20, 38, 0.85); /* 极暗蓝半透明面板填充 */
+  /* 不透明面板底色 = panel-bg 合成于 fui-bg 之上。
+     浮层(下拉/弹窗/通知)与多层嵌套结构必须用实心色,
+     禁止把半透明 panel-bg 叠在其他颜色层上(会透出下层颜色造成偏色) */
+  --fui-panel-solid: #091324;
+
+  /* 状态色 */
+  --fui-primary: #2fe0a8; /* 青绿:高亮 / 选中 / 进度块 */
+  --fui-accent: #e14f8c; /* 品红粉:告警 / 敌对 */
+  --fui-warn: #e8a33d; /* 琥珀金:标题 / 金额 */
+  --fui-ok: #3ddc84; /* 绿:状态良好 */
+  --fui-danger: #ff5252; /* 红 */
+
+  /* 描边 / 文字(钢蓝系) */
+  --fui-line: rgba(63, 143, 196, 0.45);
+  --fui-line-strong: rgba(63, 143, 196, 0.85);
+  /* 同色低透明衍生态:hover 填充、未选中进度格、图表网格线等。
+     组件一律引用这组变量,禁止在组件里写 rgba 字面量 */
+  --fui-line-ghost: rgba(63, 143, 196, 0.08); /* line 8%:极淡 hover 填充 */
+  --fui-line-faint: rgba(63, 143, 196, 0.12); /* line 12%:网格线 / 未选中填充 */
+  --fui-line-soft: rgba(63, 143, 196, 0.18); /* line 18%:轨道 / 未选中描边 */
+  --fui-text: #a5d3e2; /* 浅钢蓝 */
+  --fui-text-dim: rgba(165, 211, 226, 0.45);
+
+  /* ---------------------------------------------------------------- */
+  /* 语义色衍生态                                                      */
+  /*                                                                   */
+  /* 每个 tone 三档,组件按 tone 拼 var(--fui-<tone>-soft) 等使用:     */
+  /*   -soft         8%   同色填充(hover / 徽标底 / 高亮行)          */
+  /*   -line        55%   常态描边                                     */
+  /*   -line-strong 90%   hover 描边                                   */
+  /* 新增主题时整组覆盖即可,组件无需改动 —— 这是"组件里禁止出现       */
+  /* rgba 字面量"这条约定的落点。                                      */
+  /* ---------------------------------------------------------------- */
+  --fui-primary-soft: rgba(47, 224, 168, 0.08);
+  --fui-primary-line: rgba(47, 224, 168, 0.55);
+  --fui-primary-line-strong: rgba(47, 224, 168, 0.9);
+
+  --fui-ok-soft: rgba(61, 220, 132, 0.08);
+  --fui-ok-line: rgba(61, 220, 132, 0.55);
+  --fui-ok-line-strong: rgba(61, 220, 132, 0.9);
+
+  --fui-warn-soft: rgba(232, 163, 61, 0.08);
+  --fui-warn-line: rgba(232, 163, 61, 0.55);
+  --fui-warn-line-strong: rgba(232, 163, 61, 0.9);
+
+  --fui-accent-soft: rgba(225, 79, 140, 0.08);
+  --fui-accent-line: rgba(225, 79, 140, 0.55);
+  --fui-accent-line-strong: rgba(225, 79, 140, 0.9);
+
+  --fui-danger-soft: rgba(255, 82, 82, 0.08);
+  --fui-danger-line: rgba(255, 82, 82, 0.55);
+  --fui-danger-line-strong: rgba(255, 82, 82, 0.9);
+
+  /* neutral tone 复用钢蓝系,补 -soft/-line 别名让组件能统一按 tone 拼 */
+  --fui-neutral-soft: var(--fui-line-ghost);
+  --fui-neutral-line: var(--fui-line);
+  --fui-neutral-line-strong: var(--fui-line-strong);
+
+  /* 模态遮罩:比 --fui-bg 更暗的半透明层 */
+  --fui-overlay: rgba(4, 7, 15, 0.75);
+  /* body 的坐标格网格线 */
+  --fui-grid-line: rgba(63, 143, 196, 0.05);
+
+  /* 辉光(多层 box-shadow,FUI 风格:极弱,近乎不可见) */
+  --fui-glow-sm: 0 0 4px rgba(47, 224, 168, 0.25);
+  --fui-glow-md:
+    0 0 5px rgba(47, 224, 168, 0.28), 0 0 12px rgba(47, 224, 168, 0.1);
+  --fui-glow-lg:
+    0 0 6px rgba(63, 143, 196, 0.3), 0 0 16px rgba(63, 143, 196, 0.14),
+    0 0 32px rgba(63, 143, 196, 0.06);
+  /* -sm 的 warn / accent 变体(ProgressBar 按 tone 取) */
+  --fui-glow-sm-warn: 0 0 4px rgba(232, 163, 61, 0.25);
+  --fui-glow-sm-accent: 0 0 4px rgba(225, 79, 140, 0.25);
+  /* 文字辉光(Text glow),比 box-shadow 略强但仍克制 */
+  --fui-text-glow:
+    0 0 5px rgba(47, 224, 168, 0.45), 0 0 12px rgba(47, 224, 168, 0.18);
+  /* Panel 描边的外辉光(filter: drop-shadow),按 variant 取 */
+  --fui-panel-glow: drop-shadow(0 0 3px rgba(63, 143, 196, 0.08));
+  --fui-panel-glow-accent: drop-shadow(0 0 4px rgba(225, 79, 140, 0.18));
+  --fui-panel-glow-warn: drop-shadow(0 0 4px rgba(232, 163, 61, 0.18));
+
+  /* CRT 氛围层的着色部分(扫描束 / RGB 色散),同样随主题走。
+     纯黑的扫描线与暗角不入 token —— 它们与主题色无关 */
+  --fui-crt-sweep: rgba(63, 143, 196, 0.06);
+  --fui-crt-sweep-fade: rgba(63, 143, 196, 0.03);
+  --fui-chromatic-r: rgba(225, 79, 140, 0.5);
+  --fui-chromatic-l: rgba(47, 224, 168, 0.5);
+}
+
+/* 字体切换:默认 DotGothic16(16 点阵哥特,像素感强且相对可读)。
+   在根元素上设置 data-fui-font 切换:
+   - dotgothic16(默认) 16 点阵哥特,像素 CRT 感
+   - space-mono        复古未来主义打字机感
+   - handjet           真·点阵(字形由圆点组成,LED/点阵打印机效果)
+   - silkscreen        8-bit 像素,小字号可读性最好的像素体
+   - press-start-2p    经典 8-bit 街机像素(只适合大字标题)
+   - vt323             CRT 终端字形(平滑,非像素)
+   - ibm-plex-mono     IBM 工程终端血统,克制精密
+   - share-tech-mono   现代科幻 HUD 风(v0 默认) */
+:root,
+[data-fui-font='dotgothic16'] {
+  --fui-font: 'DotGothic16', ui-monospace, monospace;
+}
+[data-fui-font='space-mono'] {
+  --fui-font: 'Space Mono', ui-monospace, monospace;
+}
+[data-fui-font='handjet'] {
+  --fui-font: 'Handjet', ui-monospace, monospace;
+}
+[data-fui-font='silkscreen'] {
+  --fui-font: 'Silkscreen', ui-monospace, monospace;
+}
+[data-fui-font='press-start-2p'] {
+  --fui-font: 'Press Start 2P', ui-monospace, monospace;
+}
+[data-fui-font='vt323'] {
+  --fui-font: 'VT323', ui-monospace, monospace;
+}
+[data-fui-font='ibm-plex-mono'] {
+  --fui-font: 'IBM Plex Mono', ui-monospace, monospace;
+}
+[data-fui-font='share-tech-mono'] {
+  --fui-font: 'Share Tech Mono', ui-monospace, monospace;
+}
+
+/* Tailwind v4 CSS-first 主题映射 */
+@theme {
+  --color-fui-bg: var(--fui-bg);
+  --color-fui-panel-solid: var(--fui-panel-solid);
+  --color-fui-primary: var(--fui-primary);
+  --color-fui-accent: var(--fui-accent);
+  --color-fui-warn: var(--fui-warn);
+  --color-fui-ok: var(--fui-ok);
+  --color-fui-danger: var(--fui-danger);
+  --color-fui-line: var(--fui-line);
+  --color-fui-text: var(--fui-text);
+  --color-fui-text-dim: var(--fui-text-dim);
+
+  --font-fui: var(--fui-font);
+}
+
+body {
+  background-color: var(--fui-bg);
+  color: var(--fui-text);
+  font-family: var(--font-fui);
+  /* 极淡的方格网格背景(FUI的坐标格) */
+  background-image:
+    linear-gradient(var(--fui-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--fui-grid-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ------------------------------------------------------------------ */
+/* CRT 氛围层(ScreenEffects 组件按 props 拼接这些类)                  */
+/* ------------------------------------------------------------------ */
+
+.fui-scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.22) 0px,
+    rgba(0, 0, 0, 0.22) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.fui-scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--fui-crt-sweep-fade) 48%,
+    var(--fui-crt-sweep) 50%,
+    var(--fui-crt-sweep-fade) 52%,
+    transparent 100%
+  );
+  background-size: 100% 240px;
+  background-repeat: no-repeat;
+}
+
+.fui-vignette {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.35) 100%
+  );
+}
+
+/* RGB 色散文字:className 工具,直接加到文本元素上 */
+.fui-chromatic {
+  text-shadow:
+    1px 0 0 var(--fui-chromatic-r),
+    -1px 0 0 var(--fui-chromatic-l);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fui-scanlines::after {
+    animation: fui-scanline-drift 9s linear infinite;
+  }
+
+  .fui-flicker {
+    animation: fui-flicker 4s steps(1, end) infinite;
+  }
+
+  @keyframes fui-scanline-drift {
+    from {
+      background-position: 0 -240px;
+    }
+    to {
+      background-position: 0 100vh;
+    }
+  }
+
+  @keyframes fui-flicker {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    7% {
+      opacity: 0.97;
+    }
+    8% {
+      opacity: 1;
+    }
+    43% {
+      opacity: 0.96;
+    }
+    44% {
+      opacity: 1;
+    }
+    71% {
+      opacity: 0.98;
+    }
+    72% {
+      opacity: 1;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Loading 分段方块脉冲(Loading 组件使用,inline animationDelay 错峰)   */
+/* ------------------------------------------------------------------ */
+
+/* reduced-motion 时保持静态半透明 */
+.fui-loading-block {
+  background: var(--fui-primary);
+  opacity: 0.15;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fui-loading-block {
+    animation: fui-loading-pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes fui-loading-pulse {
+    0%,
+    100% {
+      opacity: 0.15;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Loading 旋转/脉冲 spinner(line / square variant 使用)               */
+/* ------------------------------------------------------------------ */
+
+/* line:竖线贯穿元素上下(留边),绕元素正中心旋转,即绕线自身中点转;
+   reduced-motion 时静止竖直 */
+.fui-loading-line {
+  background: linear-gradient(var(--fui-primary), var(--fui-primary)) center /
+    1px 75% no-repeat;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fui-loading-line {
+    animation: fui-loading-spin 1.2s linear infinite;
+  }
+
+  @keyframes fui-loading-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
