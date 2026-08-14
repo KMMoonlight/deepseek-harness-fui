@@ -1,0 +1,20 @@
+# The dsh-fui-app bundle patch: the FUI surface over the dsh-web-app layer.
+#
+# Applied after dsh-base and dsh-web-app, so every row the web surface already
+# composed is in place and this layer only restates what the FUI surface
+# changes. A patch replaces the targeted row's whole `config`, so any row here
+# restates every key it owns.
+#
+# Deliberately NOT restated here: the webserver, API gateway, transport, and
+# frontend-dist rows. This bundle shares the browser application and its dist
+# with dsh-web-app — the FUI surface differs by which client plugins the roster
+# mounts, not by how the page is served. `dsh web` therefore keeps working
+# unchanged beside `dsh --profile fui`, which is what makes an A/B comparison
+# of the two surfaces possible during the skin work.
+
+- id: system-prompt
+  config:
+    persona: >-
+      You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
+      The GUI you are surfaced through uses the FUI visual system: a dark navy ground with thin
+      steel-blue rules and teal highlights.
