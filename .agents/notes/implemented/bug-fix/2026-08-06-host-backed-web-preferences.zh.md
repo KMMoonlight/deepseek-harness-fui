@@ -36,8 +36,8 @@ Web 的 Appearance、Language 和繁忙态 Enter 偏好原本存在浏览器 `lo
 
 ## 后果
 
-Appearance、Language 和繁忙态 Enter 选择会跟随 DSH 用户 home，跨越重新加载、端口与回环 origin。直接编辑 `settings.yaml` 所产生的变更会通过现有失效流收敛，而旧的 `dsh.theme`、`dsh.locale` 和 `dsh.conversation.busyEnter` 条目既不会被读取，也不会被写入。
+持久化主题偏好、Language 选择和繁忙态 Enter 选择会跟随 DSH 用户 home，跨越重新加载、端口与回环 origin。由于 FUI 只有一套配色，产品设置不再暴露主题偏好，但 ThemeRuntime 仍会采纳 Host 值。直接编辑 `settings.yaml` 所产生的变更会通过现有失效流收敛，而旧的 `dsh.theme`、`dsh.locale` 和 `dsh.conversation.busyEnter` 条目既不会被读取，也不会被写入。
 
 启动时可能会在后台读取结算前短暂显示领域默认值。短暂的读取失败会保留该默认值或上一个正确的进程内值；重连时会重试。写入被拒时，界面可能会在本地值立即变化后明显恢复为持久化偏好。
 
-聚焦的单元测试覆盖 schema 注册、先监听后读取的顺序、非阻塞激活、经 schema 校验的分节接受、携带 revision 的有序写入、陈旧响应隔离、故障恢复、释放时完全停稳，以及远程端仅内存模式。以 namespace 为粒度的 scope 也承载多字段分节，因此后续的配置表面可以沿用同一份生命周期，而不必手搭 describe/mutate 同步。无密钥 Web settings 场景通过 UI 写入全部三项偏好，校验 YAML 文档并确认旧 `localStorage` 为空，重新加载，再使用同一个 DSH home 在不同端口上启动另一个 Host。
+聚焦的单元测试覆盖 schema 注册、先监听后读取的顺序、非阻塞激活、经 schema 校验的分节接受、携带 revision 的有序写入、陈旧响应隔离、故障恢复、释放时完全停稳，以及远程端仅内存模式。以 namespace 为粒度的 scope 也承载多字段分节，因此后续的配置表面可以沿用同一份生命周期，而不必手搭 describe/mutate 同步。无密钥 Web settings 场景通过 UI 写入 Language 与繁忙态 Enter 偏好，校验 YAML 文档并确认旧 `localStorage` 为空，重新加载，再使用同一个 DSH home 在不同端口上启动另一个 Host；主题包与启动测试独立固定持久化主题的采纳，无需产品选择器。

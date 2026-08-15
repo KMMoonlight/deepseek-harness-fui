@@ -509,6 +509,27 @@
   box-shadow: 3px 3px 0 var(--fui-primary-soft);
 }
 
+/* The no-workspace state is one square dashed frame on FUI. Remove both the
+   stock capsule mask and the solid card stroke so the two do not stack. */
+:global(body[data-fui-surface]) .cardWorkspaceTrigger,
+:global(body[data-fui-surface]) .cardWorkspaceTrigger:focus-within {
+  border-color: transparent;
+}
+
+:global(body[data-fui-surface]) .cardWorkspaceTrigger::after {
+  border: 1px dashed var(--fui-line-strong);
+  border-radius: 0;
+  background: transparent;
+  -webkit-mask: none;
+  mask: none;
+}
+
+:global(body[data-fui-surface]) .cardWorkspaceTrigger:hover::after,
+:global(body[data-fui-surface]) .cardWorkspaceTrigger:focus-within::after {
+  border-color: var(--fui-primary);
+  background: transparent;
+}
+
 :global(body[data-fui-surface]) .input,
 :global(body[data-fui-surface]) .mirror,
 :global(body[data-fui-surface]) .backdrop {

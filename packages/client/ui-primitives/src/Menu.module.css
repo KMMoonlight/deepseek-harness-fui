@@ -266,8 +266,13 @@
   background: var(--fui-primary);
 }
 
-:global(body[data-fui-surface]) .item:hover:not(:disabled) .itemIcon {
-  color: currentColor;
+:global(body[data-fui-surface]) .item:hover:not(:disabled) .itemIcon,
+:global(body[data-fui-surface]) .item:hover:not(:disabled) .itemLabel,
+:global(body[data-fui-surface]) .item:hover:not(:disabled) .itemLabel *,
+:global(body[data-fui-surface]) .item:hover:not(:disabled) .check {
+  /* Rich labels may assign their own stock-profile foregrounds. The FUI
+     primary hover fill needs one dark foreground across the whole row. */
+  color: inherit;
 }
 
 :global(body[data-fui-surface]) .label {

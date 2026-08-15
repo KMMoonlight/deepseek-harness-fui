@@ -10,7 +10,7 @@ Status: proposed
 
 ## 提案
 
-**协作导向（后续所有模块接入 Settings 的方式）：功能属主自注册。** Settings 壳是纯组合面：只声明 slot、渲染 chrome 结构，零文案、不依赖 locale、不 import 也不枚举任何功能；一个功能要出现在 Settings 里，由它自己的插件向对应 slot 注册——locale 注册 Language 行，ui-theme 注册 Appearance 行，ui-settings-models 注册 Models 一级面板。不为「某功能的设置页」单开 `ui-settings-*` 包：设置面属于功能包本身（做 Theme 功能，Theme 的设置选择就随 ui-theme 一起交付）。不属于任何单一功能的内容（trigger/标题/close 的 chrome 文案、General 目录与骨架行、`settings` 字典）由 `ui-settings-general` 拥有——它是「无主文案」的属主，不是功能卫星包。
+**协作导向（后续所有模块接入 Settings 的方式）：功能属主自注册。** Settings 壳是纯组合面：只声明 slot、渲染 chrome 结构，零文案、不依赖 locale、不 import 也不枚举任何功能；一个功能要出现在 Settings 里，由它自己的插件向对应 slot 注册——locale 注册 Language 行，ui-settings-models 注册 Models 一级面板。不为「某功能的设置页」单开 `ui-settings-*` 包：设置面属于功能包本身。不属于任何单一功能的内容（trigger/标题/close 的 chrome 文案、General 目录与骨架行、`settings` 字典）由 `ui-settings-general` 拥有——它是「无主文案」的属主，不是功能卫星包。由于已交付的 FUI 只有一套配色，ui-theme 特意不注册设置行；该产品决策由[移除「外观」设置行](../../implemented/simplification/2026-08-15-remove-appearance-settings-row.md)拥有。
 
 Sidebar 声明 `sidebar.settings` single slot，`ui-settings` 占用它并声明四个 slot：`settings.trigger` / `settings.header` / `settings.close`（chrome 内容座，single）与 `settings.section`（一级页面，list）。无障碍名称全部解析自 slot 内容：trigger 的无障碍名称即其文本内容，dialog 经 aria-labelledby 指向 header 内容节点，close 是视觉隐藏文本座。每个 section 由功能插件贡献；壳只从 slot ledger 读取 entry metadata 生成导航，通过 `only` 渲染当前 section。General 由 `ui-settings-general` 注册（order 0）并声明 `settings.general.item` list slot，功能插件的偏好行按 order 排入。
 
@@ -18,7 +18,7 @@ Settings 入口是 sidebar Foot 的 Settings 行，点击直接打开 1080×700 
 
 `@deepseek-ai/dsh-client-locale` 提供 `ctx.locale`，`ui-theme` 提供 `ctx.theme`。两个服务都以 getter 读取、setter 写入并用 typed Cordis 变更事件发布不可变快照；服务自己持久化偏好（只存 id，无效值回退默认）。
 
-功能行的 apply 层各自订阅自家变更事件（locale 订 `locale/change`，ui-theme 订 `theme/change`），把快照投影到该行注册时声明的 slot store。React 组件只读 `useStore`、写注入的 setter callback，不读取 ctx 或服务。
+功能行的 apply 层各自订阅自家变更事件，把快照投影到该行注册时声明的 slot store。React 组件只读 `useStore`、写注入的 setter callback，不读取 ctx 或服务。ThemeRuntime 仍为布局与扩展消费方发布 `theme/change`，但不投影产品设置行。
 
 Theme 偏好三态：`light`、`dark`、`system`，默认 `system`（无持久化偏好或无效值时）。system 的解析属主题领域：ThemeRuntime 持有 `prefers-color-scheme` matchMedia 监听（环境感知，非 DOM 呈现），偏好为 system 且系统配色变化时重发快照；快照同时携带 `preference` 与解析后的 `active` 定义。
 
@@ -31,11 +31,11 @@ Theme 服务不操作 DOM。`ui-layout` 初始读取 Theme getter，随后订阅
 | chrome 内容（trigger/header/close）| `ui-settings-general` | 设置入口行图标+文案、面板标题、close 隐藏文本 |
 | General section（order 0）| `ui-settings-general` | Permission、Tool Call 视觉骨架（无写操作）+ `settings.general.item` slot 声明 |
 | Language 行（item order 0）| `locale` | Selector 下拉，中文/English 真实可切 |
-| Appearance 行（item order 10）| `ui-theme` | Light/Dark/System 三 cube 真实可切（选中态看 preference） |
+| 主题偏好 | `ui-theme` | 不显示设置行；固定配色的 FUI 只为启动、原界面语义与扩展消费方保留 ThemeRuntime |
 | Models section（order 10）| `ui-settings-models` | 仅导航项，内容区为空；后续模型管理功能落在该包 |
 | 插件 | 无 | 首期不做，导航不出现该项（后续插件功能包注册 section 即自动出现） |
 
-首期只对 Settings 浮层内文案进行本地化；字典就近存放——chrome + General 骨架归 `ui-settings-general` 的 `settings` namespace，功能行文案归各功能包（`settings.locale`、`settings.theme`、`settings.models`）。
+首期只对 Settings 浮层内文案进行本地化；字典就近存放——chrome + General 骨架归 `ui-settings-general` 的 `settings` namespace，功能行文案归各功能包（`settings.locale`、`settings.models`）。
 
 ### slot 拓扑
 
@@ -50,12 +50,11 @@ root
          └─ settings.section             list/root
             ├─ general (order 0)         ui-settings-general 注册
             │  └─ settings.general.item  list/root
-            │     ├─ language (0)        locale 注册
-            │     └─ appearance (10)     ui-theme 注册
+            │     └─ language (0)        locale 注册
             └─ models (order 10)         ui-settings-models 注册
 ```
 
-section/item contribution 使用 `ctx.slots.inject()`，不依赖 client manifest（元数据清单）的 apply 顺序；本地化 label 走 [全量接入 Note](../../implemented/architecture/2026-07-30-client-locale-full-rollout.md) 的 label thunk。SlotMap 类型分家：trigger/header/close/section 正家在 ui-settings 约定（消费方 general/models 均依赖壳，无环）；`settings.general.item` 正家在 locale 包——它是全部 item 注册方的最低公共依赖（设置行必带文案），而声明方 general 的约定对 locale/ui-theme 不可达（会成环）；ui-theme 经 re-export 出口消费。
+section/item contribution 使用 `ctx.slots.inject()`，不依赖 client manifest（元数据清单）的 apply 顺序；本地化 label 走 [全量接入 Note](../../implemented/architecture/2026-07-30-client-locale-full-rollout.md) 的 label thunk。SlotMap 类型分家：trigger/header/close/section 正家在 ui-settings 约定（消费方 general/models 均依赖壳，无环）；`settings.general.item` 同样位于设置领域约定中，使每个功能注册方无需依赖外壳实现即可贡献设置行。
 
 ### slot 声明是一等可注入等待对象
 
@@ -110,7 +109,7 @@ Locale 内置中文和 English；`setLocale`/`setTheme` 是唯一写入口，未
 
 **Settings import 并枚举各 section。** 新增页面必须修改壳插件，破坏「每个功能由自己的插件占用 slot」的组合模型。
 
-**按功能为每个 section 单开 `ui-settings-*` 卫星包。** 设置面与功能本体分家：改 Theme 行为要动两个包，包数随设置项线性膨胀，且卫星包反向依赖 locale/theme 服务，形成纯粹为拆包而生的中间层。功能属主自注册下不存在这层：preference 行随功能包交付；`ui-settings-general` 只收无主文案（chrome 与 General 骨架），不承载任何功能的设置面。
+**按功能为每个 section 单开 `ui-settings-*` 卫星包。** 设置面与功能本体分家：改偏好行为要动两个包，包数随设置项线性膨胀，且卫星包反向依赖领域服务，形成纯粹为拆包而生的中间层。功能属主自注册下不存在这层：preference 行随功能包交付；`ui-settings-general` 只收无主文案（chrome 与 General 骨架），不承载任何功能的设置面。
 
 **把 Locale/Theme 快照直接注入 React。** inject 结果按 entry identity 缓存，易变值会陈旧；为每个服务自造 React 钩子也绕开 slot store 的统一绑定。
 
@@ -119,12 +118,12 @@ Locale 内置中文和 English；`setLocale`/`setTheme` 是唯一写入口，未
 - Settings 壳只依赖 slot ledger，不依赖任一功能实现；General 的 item 列表同样只依赖 ledger。
 - 新增一个设置项 = 功能包自己注册（section 或 general item），零壳改动。
 - Locale 与 Theme 的写入只走 setter，持续同步只走变更事件。
-- 功能行 store 初始化走 getter，后续由自家变更事件更新并局部重渲染。
+- 功能行 store 初始化走 getter，后续由自家变更事件更新并局部重渲染；FUI 只有一套配色时，ui-theme 不暴露设置行。
 - Layout 独立应用 Theme 快照，Theme 服务不访问 DOM；presenter 不出现 system 分支。
-- 中文/English 与 Light/Dark/System 能切换并刷新后恢复；偏好为 system 时系统配色变化即时生效。
+- 中文/English 能切换并在刷新后恢复；ThemeRuntime 仍解析持久化的 light/dark/system 值，并在不暴露产品设置选择器的前提下响应系统配色变化。
 - Models 只有导航项与空内容区；Permission、Tool Call 骨架无写操作。
 - 浮层经 close 按钮、遮罩点击、ESC 均可关闭。
 
 ## 风险
 
-slot 声明与 contribution 的 apply 顺序不固定，所有 section/item 注册方必须使用 `ctx.slots.inject()`，而不能以服务或本地 disposer 作为在位信号。service event 可能早于行首次渲染，功能行 store 的 init 与 inject attach 都必须从 getter 对齐当前快照。`settings.general.item` 的重复合并副本（locale、ui-theme）与 ui-settings 正家必须逐字一致，漂移即三处一起改。Layout 卸载时必须清理自己设置的全局属性，ThemeRuntime dispose（资源释放）时必须移除 matchMedia 监听，避免 HMR（热模块替换）后残留。
+slot 声明与 contribution 的 apply 顺序不固定，所有 section/item 注册方必须使用 `ctx.slots.inject()`，而不能以服务或本地 disposer 作为在位信号。service event 可能早于行首次渲染，功能行 store 的 init 与 inject attach 都必须从 getter 对齐当前快照。Layout 卸载时必须清理自己设置的全局属性，ThemeRuntime dispose（资源释放）时必须移除 matchMedia 监听，避免 HMR（热模块替换）后残留。

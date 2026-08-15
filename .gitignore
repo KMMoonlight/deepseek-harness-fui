@@ -45,3 +45,7 @@ worktrees/
 
 # Rust build artifacts for the desktop shell
 /desktop/target/
+
+# Electron desktop staging and distribution artifacts
+/apps/desktop/runtime-host/
+/apps/desktop/dist/

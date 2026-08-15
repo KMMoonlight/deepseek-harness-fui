@@ -52,6 +52,90 @@ describe('web e2e: FUI surface', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1680)
     expect(await frame.evaluate(element => getComputedStyle(element).fontFamily)).toContain('Space Mono')
 
+    const workspaceTrigger = page.locator('[data-composer-card]')
+    const triggerGeometry = await workspaceTrigger.evaluate((element) => {
+      const card = getComputedStyle(element)
+      const frame = getComputedStyle(element, '::after')
+      return {
+        cardBorder: card.borderColor,
+        cardRadius: card.borderRadius,
+        frameBorderStyle: frame.borderStyle,
+        frameMask: frame.maskImage,
+        frameRadius: frame.borderRadius,
+      }
+    })
+    expect(triggerGeometry).toEqual({
+      cardBorder: 'rgba(0, 0, 0, 0)',
+      cardRadius: '0px',
+      frameBorderStyle: 'dashed',
+      frameMask: 'none',
+      frameRadius: '0px',
+    })
+    expect(await page.getByRole('button', { name: 'Standard mode', exact: true })
+      .evaluate(element => getComputedStyle(element).borderRadius)).toBe('0px')
+
+    const commandBar = page.getByRole('banner')
+    expect(await commandBar.evaluate(element => getComputedStyle(element).paddingLeft)).toBe('12px')
+    await page.locator('html').evaluate((element) => {
+      element.setAttribute('data-dsh-native-titlebar', 'macos-overlay')
+    })
+    expect(await commandBar.evaluate(element => getComputedStyle(element).paddingLeft)).toBe('92px')
+    await page.locator('html').evaluate((element) => {
+      element.removeAttribute('data-dsh-native-titlebar')
+    })
+    await page.locator('html').evaluate((element) => {
+      element.setAttribute('data-dsh-desktop-shell', 'electron')
+    })
+    const electronWindowChrome = await commandBar.evaluate((element) => {
+      const interactive = document.createElement('button')
+      element.append(interactive)
+      const region = (target: Element): string => {
+        const style = getComputedStyle(target)
+        return style.getPropertyValue('app-region') || style.getPropertyValue('-webkit-app-region')
+      }
+      const result = { commandBar: region(element), interactive: region(interactive) }
+      interactive.remove()
+      return result
+    })
+    expect(electronWindowChrome).toEqual({ commandBar: 'drag', interactive: 'no-drag' })
+    await page.locator('html').evaluate((element) => {
+      element.removeAttribute('data-dsh-desktop-shell')
+    })
+
+    await page.getByRole('button', { name: 'Standard mode', exact: true }).click()
+    const standardPreset = page.getByRole('menuitem', { name: /^Standard mode\b/ })
+    await standardPreset.hover()
+    const presetHoverContrast = await standardPreset.evaluate((element) => {
+      const parseRgb = (value: string): [number, number, number] => {
+        const channels = value.match(/[\d.]+/g)?.slice(0, 3).map(Number)
+        if (channels === undefined || channels.length !== 3) throw new Error(`Expected RGB color, received ${value}`)
+        return channels as [number, number, number]
+      }
+      const luminance = (value: string): number => {
+        const [red, green, blue] = parseRgb(value).map((channel) => {
+          const normalized = channel / 255
+          return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4
+        }) as [number, number, number]
+        return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+      }
+      const contrast = (foreground: string, background: string): number => {
+        const lighter = Math.max(luminance(foreground), luminance(background))
+        const darker = Math.min(luminance(foreground), luminance(background))
+        return (lighter + 0.05) / (darker + 0.05)
+      }
+      const background = getComputedStyle(element).backgroundColor
+      const richText = Array.from(element.querySelectorAll('[class*="itemName"], [class*="itemDesc"]'))
+      const check = element.querySelector('svg')
+      return {
+        text: richText.map(node => contrast(getComputedStyle(node).color, background)),
+        check: check === null ? 0 : contrast(getComputedStyle(check).color, background),
+      }
+    })
+    expect(presetHoverContrast.text).toHaveLength(2)
+    expect(Math.min(...presetHoverContrast.text)).toBeGreaterThanOrEqual(4.5)
+    expect(presetHoverContrast.check).toBeGreaterThanOrEqual(3)
+    await page.keyboard.press('Escape')
+
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
     const settings = page.getByRole('dialog', { name: 'Settings' })
     await settings.waitFor({ timeout: 10_000 })
@@ -66,8 +150,8 @@ describe('web e2e: FUI surface', () => {
     expect(settingsStyle.fontFamily).toContain('Space Mono')
     const activeSettingsNav = settings.getByRole('button', { name: 'General' })
     expect(await activeSettingsNav.evaluate(element => getComputedStyle(element).borderRadius)).toBe('0px')
-    expect(await settings.getByRole('button', { name: 'Light' })
-      .evaluate(element => getComputedStyle(element).borderRadius)).toBe('0px')
+    expect(await settings.getByText('Appearance', { exact: true }).count()).toBe(0)
+    expect(await settings.getByRole('button', { name: 'Light' }).count()).toBe(0)
     await page.keyboard.press('Escape')
 
     await page.setViewportSize({ width: 375, height: 812 })

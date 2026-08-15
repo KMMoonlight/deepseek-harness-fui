@@ -94,6 +94,19 @@
     - id: plugin-inventory
       name: '@deepseek-ai/dsh-host-plugin-inventory'
 
+    # Package installation mutates the writable FUI profile and is never
+    # exposed by an ordinary Web Host.
+    - id: plugin-installer
+      name: '@deepseek-ai/dsh-host-plugin-installer'
+      disabled: !!js process.env.DSH_DESKTOP !== '1'
+      config:
+        cliEntry: !!js process.env.DSH_DESKTOP_CLI_ENTRY
+        profile: fui
+        timeoutMs: 300000
+        maxOutputBytes: 64000
+        graceMs: 5000
+        maxSpecChars: 2048
+
     # The API gateway: the transport-agnostic dispatch face every client shape
     # shares. The base layer's agent-default-model service owns the default model.
     - id: api-gateway
@@ -194,6 +207,10 @@
 
     - id: ui-settings-plugin-inventory
       name: '@deepseek-ai/dsh-client-ui-settings-plugin-inventory'
+
+    - id: ui-settings-plugin-installer
+      name: '@deepseek-ai/dsh-client-ui-settings-plugin-installer'
+      disabled: !!js process.env.DSH_DESKTOP !== '1'
 
     - id: ui-conversation
       name: '@deepseek-ai/dsh-client-ui-conversation'

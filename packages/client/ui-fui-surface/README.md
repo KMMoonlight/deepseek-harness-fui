@@ -28,6 +28,6 @@ None; this package neither assembles nor sends a provider request.
 
 ## Known Limitations and Deferred Work
 
-- **Single dark surface** — f-ui ships only its `cyan` theme, so the bridge has no light variant. ui-theme's light/dark preference still resolves and still drives the stock surface, but on the FUI surface both branches land on the same palette.
+- **Single dark surface** — f-ui ships only its `cyan` theme, and Product Settings exposes no Appearance selector. ThemeRuntime retains light/dark/system for startup, stock-surface semantics, and extension consumers, but both FUI branches land on the same palette.
 - **Mask colours are literals** — the four `bg-mask-*` roles need alpha over the FUI ground, and f-ui exposes no pre-derived mask tone, so they are written as `rgba()` against the known ground value. A ground change silently desynchronises them.
 - **No contrast gate** — the mapping was measured on the running surface (body text lands at 11.5–12.1:1 against its ground, well past WCAG AA), but nothing asserts a ratio per role, so a future token change can regress legibility without failing a build.

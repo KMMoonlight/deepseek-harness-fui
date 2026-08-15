@@ -466,7 +466,7 @@ describe('plugin registration', () => {
       isLoopback: false,
       hostDescription,
     } as never)
-    // ui-theme's Appearance row binds a durable scope through these two.
+    // ui-theme binds its durable preference scope through these two.
     ctx.provide('remote', { $on: () => () => {} } as never)
     ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
     await ctx.plugin({ inject: localeInject, apply: applyLocale }).await()

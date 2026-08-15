@@ -34,6 +34,9 @@
       "path": "../../feedback/message-feedback"
     },
     {
+      "path": "../../host/plugin-installer"
+    },
+    {
       "path": "../../host/plugin-inventory"
     },
     {

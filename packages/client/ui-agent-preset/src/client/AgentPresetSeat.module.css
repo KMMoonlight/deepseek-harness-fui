@@ -117,3 +117,26 @@
   color: var(--dsw-alias-label-caption);
   white-space: normal;
 }
+
+:global(body[data-fui-surface]) .seat {
+  min-height: 26px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  color: var(--fui-text-dim);
+  font-family: var(--fui-font);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+:global(body[data-fui-surface]) .seat:not(:disabled):hover,
+:global(body[data-fui-surface]) .seat[aria-expanded='true'] {
+  color: var(--fui-primary);
+  border-color: var(--fui-primary-line);
+  background: var(--fui-primary-soft);
+}
+
+:global(body[data-fui-surface]) .seatIcon,
+:global(body[data-fui-surface]) .chevron {
+  color: currentColor;
+}

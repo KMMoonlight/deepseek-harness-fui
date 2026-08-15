@@ -1,0 +1,70 @@
+{
+  "name": "@deepseek-ai/dsh-desktop",
+  "description": "DeepSeek FUI desktop application with a supervised Harness Host",
+  "version": "0.1.0-rc.5",
+  "private": true,
+  "type": "module",
+  "main": "lib/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsdown",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tests/tsconfig.json",
+    "dev": "pnpm --workspace-root run build && electron .",
+    "stage-runtime": "node --import tsx scripts/stage-runtime.ts",
+    "package": "pnpm --workspace-root run build && pnpm run stage-runtime && electron-builder --dir",
+    "dist": "pnpm --workspace-root run build && pnpm run stage-runtime && electron-builder"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "electron": "43.4.0",
+    "electron-builder": "26.15.3",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "build": {
+    "appId": "ai.deepseek.fui",
+    "productName": "DeepSeek FUI",
+    "electronDist": "node_modules/electron/dist",
+    "afterPack": "./scripts/verify-packaged-runtime.ts",
+    "asar": true,
+    "files": [
+      "lib/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/icon.png",
+        "to": "desktop-resources/icon.png"
+      },
+      {
+        "from": "runtime-host/package.json",
+        "to": "host/package.json"
+      },
+      {
+        "from": "runtime-host/node_modules",
+        "to": "host/node_modules"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "resources/icon.png",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "resources/icon.png",
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "category": "Development",
+      "target": [
+        "AppImage"
+      ]
+    }
+  }
+}

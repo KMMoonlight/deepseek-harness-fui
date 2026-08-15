@@ -239,10 +239,10 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
   it.skipIf(MODE === 'record')('cascades the dark theme from the body attribute to painted surfaces', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-lifecycle-dark'))
     // This scenario pins the ThemeRuntime's DOM contract directly (the
-    // body[data-ds-dark-theme] attribute -> stylesheet cascade); the REAL
-    // user gesture above it (Settings -> Appearance cubes) is owned by
-    // settings-chrome.e2e.ts. Driving the attribute here keeps the cascade
-    // pinned independently of the settings surface's own lifecycle.
+    // body[data-ds-dark-theme] attribute -> stylesheet cascade). Product
+    // Settings exposes no theme gesture on the single-palette FUI surface,
+    // so driving the attribute keeps the presenter contract independently
+    // covered.
     const sample = async (): Promise<{ token: string; sidebarBg: string; bodyBg: string }> =>
       await page.evaluate(() => {
         const sidebar = document.querySelector('[class*="sidebar"], [class*="rail"]') ?? document.body

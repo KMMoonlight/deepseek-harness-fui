@@ -656,6 +656,56 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
     }
   }, 90_000)
 
+  it('runs a packaged pnpm entry through the current Node executable', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'dsh-plugin-packaged-pnpm-'))
+    const pnpmEntry = join(home, 'pnpm-entry.mjs')
+    const receipt = join(home, 'pnpm-args.json')
+    try {
+      writeFileSync(pnpmEntry, [
+        'import { writeFileSync } from "node:fs"',
+        'writeFileSync(process.env.DSH_PNPM_RECEIPT, JSON.stringify(process.argv.slice(2)))',
+        '',
+      ].join('\n'))
+      const result = await runBuiltBin(
+        ['plugin', '--profile', 'fui', 'root', '--depth', '0'],
+        {
+          DSH_HOME: home,
+          DSH_PNPM_ENTRY: pnpmEntry,
+          DSH_PNPM_RECEIPT: receipt,
+        },
+      )
+
+      expect(result.code).toBe(0)
+      expect(JSON.parse(readFileSync(receipt, 'utf8'))).toEqual(['root', '--depth', '0'])
+      const profile = JSON.parse(readFileSync(join(home, 'profiles', 'fui', 'package.json'), 'utf8')) as {
+        dsh: { profile: { bundles: string[] } }
+      }
+      expect(profile.dsh.profile.bundles).toEqual([
+        '@deepseek-ai/dsh-base',
+        '@deepseek-ai/dsh-web-app',
+        '@deepseek-ai/dsh-fui-app',
+      ])
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  }, 30_000)
+
+  it('rejects a relative packaged pnpm entry before creating the profile', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'dsh-plugin-invalid-packaged-pnpm-'))
+    try {
+      const result = await runBuiltBin(
+        ['plugin', '--profile', 'fui', 'root'],
+        { DSH_HOME: home, DSH_PNPM_ENTRY: 'pnpm.cjs' },
+      )
+
+      expect(result.code).toBe(127)
+      expect(result.stderr).toContain('DSH_PNPM_ENTRY must name an existing absolute pnpm JavaScript entry')
+      expect(existsSync(join(home, 'profiles', 'fui'))).toBe(false)
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  }, 30_000)
+
   it('activates a dependency that gained dsh.bundle in a later update', async () => {
     // Reconcile runs against the INSTALLED state on every successful pnpm
     // run, so `update` (not only `add`) activates a package whose newer

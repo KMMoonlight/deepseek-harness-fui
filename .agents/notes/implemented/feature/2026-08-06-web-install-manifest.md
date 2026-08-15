@@ -12,7 +12,7 @@ The Web build has a document title and favicon but no manifest from which a brow
 
 The Web entry links `/manifest.webmanifest`, which Vite copies from `apps/web/public/` into the production build. The manifest names the product `DeepSeek Harness`, gives installed chrome the compact name `DSH`, and fixes `id`, `start_url`, and `scope` at `/`. It requests `display: "fullscreen"` so supporting browsers can give the installed editor-like surface the available display area while leaving ordinary tabs unchanged; browsers may apply user overrides or fall back to another display mode. Its icon entry reuses `/favicon.svg` as an SVG of size `any` and purpose `any`.
 
-This follows code-server's fullscreen choice without copying its `window-controls-overlay` display override. DSH has no custom title bar or layout around native window controls, so such an override would supersede fullscreen without owning the required safe layout.
+This follows code-server's fullscreen choice without copying its `window-controls-overlay` display override. The browser-installed Web application has no custom title bar or safe layout around browser-owned window controls. The [Electron desktop application](../architecture/2026-08-15-electron-fui-desktop-runtime.md) owns its native window integration outside the Web manifest. A manifest override would therefore supersede fullscreen without owning the required browser layout.
 
 The manifest deliberately has no `lang`, `theme_color`, or `background_color`. The product surface is bilingual rather than owned by one manifest language, and either static color can disagree with one of the resolved app palettes. Theme metadata therefore remains outside the install manifest.
 

@@ -1,0 +1,34 @@
+- dialog "Settings":
+  - navigation:
+    - text: Settings
+    - button "General":
+      - img
+      - text: General
+    - button "Models":
+      - img
+      - text: Models
+    - button "Plugins":
+      - img
+      - text: Plugins
+    - button "Agent presets":
+      - img
+      - text: Agent presets
+  - button "Open configuration file"
+  - button "Close":
+    - img
+    - text: Close
+  - heading "Plugins" [level=2]
+  - paragraph: Configure and inspect the plugins installed in this deployment.
+  - tablist "Plugin views":
+    - tab "Plugin configuration"
+    - tab "Install plugin" [selected]
+    - tab "Plugin list"
+  - tabpanel "Install plugin":
+    - heading "Install from a plugin package" [level=3]
+    - paragraph: Enter an npm package, a versioned package, or a Git URL.
+    - text: Plugin package or Git URL
+    - textbox "Plugin package or Git URL":
+      - /placeholder: "@scope/plugin@latest or git+https://…"
+      - text: "@scope/plugin@latest"
+    - button "Install"
+    - paragraph: Plugins can run code on this computer. Install only from sources you trust.

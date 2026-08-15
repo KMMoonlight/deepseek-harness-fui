@@ -17,15 +17,17 @@
     "website"
   ],
   "scripts": {
-    "build": "npm run build:lib && npm run build:web",
+    "build": "npm run build:lib && npm run build:web && npm run build:desktop",
     "build:lib": "npm run build:lib:host && npm run build:lib:client",
     "build:lib:host": "tsc -b tsconfig.host.json && tsdown --env.DSH_BUILD_FACE host",
     "build:lib:client": "tsc -b tsconfig.client.json && tsdown --env.DSH_BUILD_FACE client",
     "build:web": "pnpm --filter @deepseek-ai/dsh-web-frontend run build",
+    "build:desktop": "pnpm --filter @deepseek-ai/dsh-desktop run build",
     "clean": "tsx scripts/clean.ts",
     "change-scope": "tsx scripts/change-scope.ts",
-    "typecheck": "npm run build:lib:host && npm run typecheck:contracts-ready",
+    "typecheck": "npm run build:lib:host && npm run typecheck:contracts-ready && npm run typecheck:desktop",
     "typecheck:contracts-ready": "tsc -b tsconfig.client.json",
+    "typecheck:desktop": "pnpm --filter @deepseek-ai/dsh-desktop run typecheck",
     "lint": "npm run build:lib:host && npm run lint:contracts-ready",
     "lint:contracts-ready": "tsx scripts/run-oxlint.ts .",
     "lint:fix": "npm run build:lib:host && npm run lint:fix:contracts-ready",
@@ -139,6 +141,9 @@
     "demo:acp": "node --import tsx packages/examples/acp-demo/src/bin.ts --config examples/acp-agent/cordis.yml",
     "mock:llm": "node --import tsx packages/test-support/llm-mock-server/src/bin.ts",
     "dev:web": "tsx scripts/dev-web.ts --poll",
+    "dev:desktop": "pnpm --filter @deepseek-ai/dsh-desktop run dev",
+    "package:desktop": "pnpm --filter @deepseek-ai/dsh-desktop run package",
+    "dist:desktop": "pnpm --filter @deepseek-ai/dsh-desktop run dist",
     "postinstall": "node scripts/install-lefthook.mjs"
   },
   "devDependencies": {

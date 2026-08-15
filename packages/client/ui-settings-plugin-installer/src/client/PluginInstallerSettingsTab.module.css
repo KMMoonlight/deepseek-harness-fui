@@ -1,0 +1,223 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 760px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.heading h3,
+.heading p,
+.warning,
+.success p {
+  margin: 0;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.heading h3 {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.heading p,
+.warning,
+.success p {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form > label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.commandRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.commandRow input,
+.commandRow button {
+  min-height: 38px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.commandRow input {
+  min-width: 0;
+  padding: 0 12px;
+  outline: none;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--ds-font-family-code);
+  font-size: 13px;
+}
+
+.commandRow input:focus-visible {
+  border-color: var(--dsw-alias-state-business-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dsw-alias-state-business-primary) 18%, transparent);
+}
+
+.commandRow button {
+  padding: 0 18px;
+  background: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-label-onbrand);
+  cursor: pointer;
+}
+
+.commandRow button:disabled,
+.commandRow input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.warning {
+  padding-left: 12px;
+  border-left: 2px solid var(--dsw-alias-state-warning-primary);
+}
+
+.success,
+.failure {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.success {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 45%, var(--dsw-alias-border-l2));
+}
+
+.success strong {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.success code {
+  overflow-wrap: anywhere;
+  font-family: var(--ds-font-family-code);
+}
+
+.failure {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, var(--dsw-alias-border-l2));
+}
+
+.failure strong {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.failure summary {
+  cursor: pointer;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.failure pre {
+  max-height: 220px;
+  margin: 8px 0 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-secondary);
+  font-family: var(--ds-font-family-code);
+  font-size: 11px;
+  line-height: 17px;
+}
+
+:global(body[data-fui-surface]) .section,
+:global(body[data-fui-surface]) .commandRow input,
+:global(body[data-fui-surface]) .commandRow button {
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .heading {
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--fui-line);
+}
+
+:global(body[data-fui-surface]) .heading h3,
+:global(body[data-fui-surface]) .form > label {
+  color: var(--fui-warn);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .heading p,
+:global(body[data-fui-surface]) .warning,
+:global(body[data-fui-surface]) .success p {
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .commandRow input,
+:global(body[data-fui-surface]) .commandRow button,
+:global(body[data-fui-surface]) .success,
+:global(body[data-fui-surface]) .failure {
+  border-radius: 0;
+}
+
+:global(body[data-fui-surface]) .commandRow input {
+  border-color: var(--fui-line);
+  background: var(--fui-bg);
+}
+
+:global(body[data-fui-surface]) .commandRow input:focus-visible {
+  border-color: var(--fui-primary);
+  box-shadow: 0 0 0 1px var(--fui-primary-line);
+}
+
+:global(body[data-fui-surface]) .commandRow button {
+  border-color: var(--fui-primary-line-strong);
+  background: var(--fui-primary-soft);
+  color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .commandRow button:active {
+  transform: translate(1px, 1px);
+}
+
+:global(body[data-fui-surface]) .warning {
+  border-left-color: var(--fui-warn);
+}
+
+:global(body[data-fui-surface]) .success {
+  border-color: var(--fui-ok-line);
+  background: var(--fui-ok-soft);
+}
+
+:global(body[data-fui-surface]) .success strong {
+  color: var(--fui-ok);
+}
+
+:global(body[data-fui-surface]) .failure {
+  border-color: var(--fui-danger-line);
+  background: var(--fui-danger-soft);
+}
+
+:global(body[data-fui-surface]) .failure strong {
+  color: var(--fui-danger);
+}
+
+@media (max-width: 620px) {
+  .commandRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

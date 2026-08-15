@@ -787,6 +787,32 @@ export interface Config {
 
 来源：[`packages/host/frontend-static/src/index.ts:28`](../packages/host/frontend-static/src/index.ts)
 
+<a id="deepseek-aidsh-host-plugin-installer"></a>
+
+## `@deepseek-ai/dsh-host-plugin-installer`
+
+需要：`subprocess`
+
+```ts config-catalog
+/** Validated process and resource policy for one desktop installer. */
+export interface Config {
+  /** Absolute built `dsh` CLI entry owned by the desktop application. */
+  cliEntry: string
+  /** Writable profile that receives installed packages. */
+  profile: string
+  /** Whole installation deadline in milliseconds. */
+  timeoutMs: number
+  /** In-memory tail bound for each child output stream. */
+  maxOutputBytes: number
+  /** TERM-to-KILL escalation grace for the package-manager process tree. */
+  graceMs: number
+  /** Maximum accepted package-spec length. */
+  maxSpecChars: number
+}
+```
+
+来源：[`packages/host/plugin-installer/src/index.ts:20`](../packages/host/plugin-installer/src/index.ts)
+
 <a id="deepseek-aidsh-host-webserver"></a>
 
 ## `@deepseek-ai/dsh-host-webserver`
@@ -3053,6 +3079,7 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-settings`（[`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-general`（[`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-models`（[`packages/client/ui-settings-models/src/index.ts`](../packages/client/ui-settings-models/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-settings-plugin-installer`（[`packages/client/ui-settings-plugin-installer/src/index.ts`](../packages/client/ui-settings-plugin-installer/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-plugin-inventory`（[`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-plugins`（[`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar`（[`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts)）

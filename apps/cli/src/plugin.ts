@@ -12,7 +12,7 @@
 
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { isAbsolute, join, resolve } from 'node:path'
 import {
   DEFAULT_PROFILE_BUNDLES,
   initProfile,
@@ -118,18 +118,30 @@ function anchorPathSpec(argument: string, cwd: string): string {
  * @returns the pnpm exit code.
  */
 export function runPlugin(profile: string, args: readonly string[]): number {
+  const pnpmEntry = process.env.DSH_PNPM_ENTRY
+  if (pnpmEntry !== undefined && (!isAbsolute(pnpmEntry) || !existsSync(pnpmEntry))) {
+    process.stderr.write(`${NAME}: DSH_PNPM_ENTRY must name an existing absolute pnpm JavaScript entry\n`)
+    return 127
+  }
   const dir = resolveProfileDir(profile)
   if (!existsSync(join(dir, 'package.json'))) {
     initProfile(dir, PROFILE_TEMPLATES[profile] ?? DEFAULT_PROFILE_BUNDLES)
     process.stderr.write(`${NAME}: initialized profile ${profile} at ${dir}\n`)
   }
   const before = readProfileManifest(NAME, dir)
-  // Windows resolves pnpm through its .cmd shim, which spawn() refuses
-  // without a shell since the CVE-2024-27980 hardening.
-  const result = spawnSync('pnpm', args.map(argument => anchorPathSpec(argument, process.cwd())), {
+  const command = pnpmEntry === undefined ? 'pnpm' : process.execPath
+  const commandArgs = [
+    ...(pnpmEntry === undefined ? [] : [pnpmEntry]),
+    ...args.map(argument => anchorPathSpec(argument, process.cwd())),
+  ]
+  // Windows resolves ordinary pnpm installs through a .cmd shim, which
+  // spawn() refuses without a shell since the CVE-2024-27980 hardening. A
+  // packaged desktop uses its Electron executable in Node mode and therefore
+  // bypasses the shim.
+  const result = spawnSync(command, commandArgs, {
     cwd: dir,
     stdio: 'inherit',
-    shell: process.platform === 'win32',
+    shell: pnpmEntry === undefined && process.platform === 'win32',
   })
   if (result.error !== undefined) {
     const code = (result.error as NodeJS.ErrnoException).code

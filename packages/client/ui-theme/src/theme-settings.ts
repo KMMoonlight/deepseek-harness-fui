@@ -11,7 +11,7 @@ export const THEME_SETTINGS_NAMESPACE = 'ui-theme'
 /** Field carrying the selected built-in theme preference. */
 export const THEME_PREFERENCE_FIELD = 'preference'
 
-/** Theme preference persisted by the product Appearance row. */
+/** Built-in theme preference persisted in the Host user-settings document. */
 export type ThemePreference = typeof THEME_PREFERENCES[number]
 
 /** Default preference when the user-settings document has no override. */

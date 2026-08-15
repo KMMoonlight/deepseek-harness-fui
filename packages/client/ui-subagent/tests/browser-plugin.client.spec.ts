@@ -88,7 +88,7 @@ async function fullBench(sessions: SessionSummary[]) {
   ctx.provide('inputTriggers', { registerSource: (src: InputTriggerSource) => { captured = src; return () => {} } })
   ctx.provide('sessions', face)
   ctx.provide('connection', { api: { settings: {} }, isLoopback: false } as never)
-  // ui-theme's Appearance row binds a durable scope through these two.
+  // ui-theme binds its durable preference scope through these two.
   ctx.provide('remote', { $on: () => () => {} } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   await provideSlotFaces(ctx)
@@ -127,7 +127,7 @@ describe('apply', () => {
     await ctx.plugin(InputTriggerService).await()
     ctx.provide('sessions', sessionsWith(FAMILY))
     ctx.provide('connection', { api: { settings: {} }, isLoopback: false } as never)
-    // ui-theme's Appearance row binds a durable scope through these two.
+    // ui-theme binds its durable preference scope through these two.
     ctx.provide('remote', { $on: () => () => {} } as never)
     ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
     await provideSlotFaces(ctx)

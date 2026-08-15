@@ -1,6 +1,8 @@
 .frame {
   --fui-shell-command-height: 40px;
   --fui-shell-status-height: 24px;
+  --fui-shell-command-inline: 12px;
+  --fui-shell-command-leading: var(--fui-shell-command-inline);
 
   position: relative; /* anchors the drag handles, which straddle column borders */
   display: grid;
@@ -13,6 +15,12 @@
   /* Collapse/expand animates the tracks on the deepsuite sider curve
      (--ds-ease-in-out / --ds-transition-duration-slow, ui-theme base.css). */
   transition: grid-template-columns var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+}
+
+/* The desktop process sets this marker only when macOS native controls overlay
+   the full-size webview. Browser tabs keep the ordinary symmetric inset. */
+:global(html[data-dsh-native-titlebar='macos-overlay']) .frame {
+  --fui-shell-command-leading: 92px;
 }
 
 /* Dragging writes widths at pointer cadence; easing them would detach the
@@ -168,12 +176,25 @@
 .commandBar {
   grid-row: 1;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 var(--fui-shell-command-inline) 0 var(--fui-shell-command-leading);
   background: color-mix(in srgb, var(--fui-panel-solid) 94%, transparent);
   border-bottom: 1px solid var(--fui-line-strong);
   box-shadow: inset 0 -1px 0 var(--fui-primary-soft);
   font-size: 10px;
   letter-spacing: 0.14em;
+}
+
+/* The Electron preload marker turns the command rail into native window
+   chrome. Interactive descendants must keep receiving pointer input. */
+:global(html[data-dsh-desktop-shell='electron']) .commandBar {
+  app-region: drag;
+  -webkit-app-region: drag;
+}
+
+:global(html[data-dsh-desktop-shell='electron']) .commandBar
+  :is(a, button, input, select, textarea, [role='button']) {
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
 }
 
 .commandIdentity,
@@ -228,8 +249,8 @@
 }
 
 @media (max-width: 720px) {
-  .commandBar {
-    padding-inline: 8px;
+  .frame {
+    --fui-shell-command-inline: 8px;
   }
 
   .commandIdentity {

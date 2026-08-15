@@ -25,6 +25,7 @@
     "tests/scaffold.ts",
     "tests/scaffold-hermetic.e2e.ts",
     "tests/fui-surface.e2e.ts",
+    "tests/desktop-plugin-installation.e2e.ts",
     "tests/minimal-preset.snapshot.ts",
     "tests/message-feedback-protocol.snapshot.ts",
     "tests/live-interactions.e2e.ts",
