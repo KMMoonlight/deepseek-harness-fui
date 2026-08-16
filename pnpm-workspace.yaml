@@ -59,6 +59,10 @@ allowBuilds:
   # The Python runtime deploy includes the reviewed workspace postinstall that
   # restores the executable bit on node-pty's macOS spawn helper.
   '@deepseek-ai/dsh-subprocess-local@file:packages/subprocess/subprocess-local': true
+  # The desktop shell's postinstall downloads the Electron binary into
+  # node_modules/electron/dist, which electron-builder's electronDist setting
+  # points at; skipping it leaves nothing to package.
+  electron: true
   # electron-builder resolves the optional Squirrel target even though this app
   # does not select it. Its install script only copies a bundled 7-Zip binary.
   electron-winstaller: false
