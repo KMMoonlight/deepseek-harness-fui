@@ -14,6 +14,10 @@
     "dist": "pnpm --workspace-root run build && pnpm run stage-runtime && electron-builder"
   },
   "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/dsh-home-paths": "workspace:^",
+    "@deepseek-ai/dsh-host-runtime-updater": "workspace:^"
+  },
   "devDependencies": {
     "@types/node": "^22.20.0",
     "electron": "43.4.0",

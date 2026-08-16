@@ -30,6 +30,8 @@ describe('desktop packaging contract', () => {
     expect(runtimePackage.dependencies).toMatchObject({
       '@deepseek-ai/dsh': 'workspace:^',
       '@deepseek-ai/dsh-fui-app': 'workspace:^',
+      '@deepseek-ai/dsh-host-runtime-updater': 'workspace:^',
+      '@deepseek-ai/dsh-client-ui-settings-runtime-updater': 'workspace:^',
       '@deepseek-ai/dsh-web-frontend': 'workspace:^',
       pnpm: '11.7.0',
     })

@@ -16,7 +16,7 @@ The application role also needs to stay explicit. Cordis plugins extend the Harn
 
 The preload marks the Electron renderer without exposing an IPC bridge. The FUI command rail uses that marker as a native drag region and excludes interactive descendants. The BrowserWindow configuration explicitly permits movement, edge resizing, minimize, maximize, and fullscreen while retaining platform window controls.
 
-The packaged application uses its Electron executable with `ELECTRON_RUN_AS_NODE=1` as the Host's Node runtime. `pnpm deploy` stages a closed production dependency tree containing the CLI, Base/Web/FUI bundles, Web frontend, every required workspace peer, and pnpm. The staging pass materializes workspace links before Electron Builder copies the tree into application resources, and the after-pack hook checks all three executable entries: CLI, frontend, and pnpm.
+The packaged application uses its Electron executable with `ELECTRON_RUN_AS_NODE=1` as the Host's Node runtime. `pnpm deploy` stages a closed production dependency tree containing the CLI, Base/Web/FUI bundles, Web frontend, every required workspace peer, and pnpm. The staging pass materializes workspace links before Electron Builder copies the tree into application resources, and the after-pack hook checks all three executable entries: CLI, frontend, and pnpm. This tree remains the immutable fallback when a [validated managed runtime](../feature/2026-08-16-desktop-managed-runtime-updates.md) is selected from Harness user storage.
 
 The ordinary writable `fui` profile remains under `~/.dsh/profiles/fui`. In-box bundles resolve from the packaged installation; third-party bundle dependencies and their lockfile remain in the profile. The desktop Host supplies the packaged pnpm JavaScript entry through `DSH_PNPM_ENTRY`; `dsh plugin` then runs that entry with the current Node-compatible executable rather than resolving a shell command. This is deployment wiring, not a second plugin installer: dependency reconciliation and `dsh.bundle.patch` activation remain owned by the existing profile command.
 
@@ -41,6 +41,7 @@ Host supervisor specs cover chunked readiness parsing, invalid origins, startup 
 - Users launch the installed application by clicking its icon; no startup command or separately installed Node/pnpm is required.
 - The FUI command rail is native window chrome in Electron; future interactive descendants must remain excluded from the drag region.
 - Third-party Cordis plugins remain installable as profile bundles through the desktop settings form. Installation is trusted-code execution, and a restart is required before the new bundle becomes active.
+- Compatible published Harness closures may be selected from managed user storage; invalid selections fall back to the immutable packaged closure.
 - The desktop artifact is larger because Electron, the complete FUI runtime, and pnpm ship together.
 - `apps/desktop` is the sole desktop application and owns the packageable root commands. Platform signing remains a release concern rather than a second shell implementation.
 - The Electron shell adds no model-visible input; session logging and model context remain owned by the mounted Harness plugins.

@@ -34,7 +34,7 @@ pnpm run dist:desktop
 
 ## 插件与用户数据
 
-应用启动的是 `~/.dsh/profiles/fui` 下的普通可写 `fui` profile。内置 bundle 来自不可变的打包运行时；第三方 profile bundle 及其 lockfile 留在用户 profile 中，因此应用升级不会清除它们。
+应用启动的是 `~/.dsh/profiles/fui` 下的普通可写 `fui` profile。如果已选中经过校验的受管运行时，内置 bundle 从中加载；否则使用不可变的打包运行时。第三方 profile bundle 及其 lockfile 留在用户 profile 中，因此运行时更新与应用升级都不会清除它们。
 
 打包 Host 通过 `DSH_PNPM_ENTRY` 获得内置 pnpm 入口。打开**设置 → 插件 → 安装插件**，输入一个 npm 包或 Git 规格，即可提交给仅限桌面端的安装器。Host 不经过 shell，也不依赖登录 shell，直接调用现有 profile 命令：
 
@@ -43,6 +43,12 @@ dsh plugin --profile fui add <package-or-git-spec>
 ```
 
 安装会改变应用可执行代码的组成，因此只能使用可信来源的包。桌面端同一时间只运行一个安装任务，并限制输出大小和执行时间；关闭该设置页会取消请求。安装成功后，需要重启桌面应用，新 bundle 才会生效。当前表单接受包规格或 Git 规格；目录浏览、包评分和发布者验证仍属于分发服务职责。
+
+## 运行时更新
+
+**设置 → 通用设置 → 桌面运行时**会显示当前 `@deepseek-ai/dsh` 版本。点击**检查并更新**后，应用会读取配置的 npm dist-tag，并自动把兼容的新运行时安装到 `$DSH_HOME/desktop-runtime`。它不会修改应用资源或全局 npm 安装。
+
+兼容性检查采用失败即拒绝：发布的根包必须声明 `@deepseek-ai/dsh-fui-app`；安装后的依赖树必须包含 FUI bundle 与 Web 前端；CLI 必须报告请求的版本。安装成功后，完全重启应用才会激活新版本。Electron 会在启动前再次校验受管依赖树；如果依赖树无效，或 Host 在就绪前失败，应用会保留相关数据用于诊断，并回退到内置运行时。没有 FUI bundle 的 npm 版本会报告不兼容，不会安装。
 
 ## 已知限制
 

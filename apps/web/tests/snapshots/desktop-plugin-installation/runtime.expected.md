@@ -1,0 +1,42 @@
+- dialog "Settings":
+  - navigation:
+    - text: Settings
+    - button "General":
+      - img
+      - text: General
+    - button "Models":
+      - img
+      - text: Models
+    - button "Plugins":
+      - img
+      - text: Plugins
+    - button "Agent presets":
+      - img
+      - text: Agent presets
+  - button "Open configuration file"
+  - button "Close":
+    - img
+    - text: Close
+  - text: Agent preset Applies to sessions you start from now on. Running sessions keep the preset they began with.
+  - button "Standard mode":
+    - text: Standard mode
+    - img
+  - text: Permission Choose the default permission mode for new sessions
+  - button "Workspace Write":
+    - text: Workspace Write
+    - img
+  - text: Language
+  - button "English":
+    - text: English
+    - img
+  - text: Enter behavior while busy Busy only; Cmd/Ctrl+Enter uses the other behavior
+  - button "Queue":
+    - text: Queue
+    - img
+  - heading "Desktop runtime" [level=3]
+  - paragraph: Check npm for a FUI-compatible DeepSeek Harness runtime and install it in user storage.
+  - button "Check and update"
+  - term: Current version
+  - definition:
+    - code: 0.1.0-rc.5
+    - text: Bundled with app

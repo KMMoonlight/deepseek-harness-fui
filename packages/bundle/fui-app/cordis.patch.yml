@@ -17,6 +17,27 @@
 # scoped to the document attribute this plugin sets, and the stock surface
 # never sets it.
 - insert:
+    # The update provider owns npm access and managed-runtime commits. Both
+    # halves stay absent from an ordinary `dsh --profile fui` browser launch.
+    - id: runtime-updater
+      name: '@deepseek-ai/dsh-host-runtime-updater'
+      disabled: !!js process.env.DSH_DESKTOP !== '1'
+      config:
+        currentVersion: !!js process.env.DSH_DESKTOP_RUNTIME_VERSION
+        currentSource: !!js process.env.DSH_DESKTOP_RUNTIME_SOURCE
+        runtimeRoot: !!js process.env.DSH_DESKTOP_RUNTIME_ROOT
+        pnpmEntry: !!js process.env.DSH_PNPM_ENTRY
+        registryUrl: 'https://registry.npmjs.org'
+        distTag: latest
+        checkTimeoutMs: 15000
+        installTimeoutMs: 300000
+        maxOutputBytes: 64000
+        graceMs: 5000
+
+    - id: ui-settings-runtime-updater
+      name: '@deepseek-ai/dsh-client-ui-settings-runtime-updater'
+      disabled: !!js process.env.DSH_DESKTOP !== '1'
+
     - id: ui-fui-surface
       name: '@deepseek-ai/dsh-client-ui-fui-surface'
 

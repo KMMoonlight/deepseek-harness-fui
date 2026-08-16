@@ -290,6 +290,7 @@
     { "path": "./packages/host/frontend-static" },
     { "path": "./packages/host/plugin-installer" },
     { "path": "./packages/host/plugin-inventory" },
+    { "path": "./packages/host/runtime-updater" },
     { "path": "./packages/host/webserver" },
     { "path": "./packages/sdk/client" },
     { "path": "./packages/sdk/protocol" },

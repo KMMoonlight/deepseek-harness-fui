@@ -811,7 +811,44 @@ export interface Config {
 }
 ```
 
-来源：[`packages/host/plugin-installer/src/index.ts:20`](../packages/host/plugin-installer/src/index.ts)
+来源：[`packages/host/plugin-installer/src/index.ts:21`](../packages/host/plugin-installer/src/index.ts)
+
+<a id="deepseek-aidsh-host-runtime-updater"></a>
+
+## `@deepseek-ai/dsh-host-runtime-updater`
+
+需要：`subprocess`
+
+```ts config-catalog
+/** Validated registry, process, and filesystem policy for one desktop updater. */
+export interface Config {
+  /** Version serving the current desktop Host. */
+  currentVersion: string
+  /** Whether the current Host came from application resources or managed storage. */
+  currentSource: DesktopRuntimeSource
+  /** Absolute writable root holding managed runtime versions and the active pointer. */
+  runtimeRoot: string
+  /** Absolute packaged pnpm JavaScript entry supplied by the Electron shell. */
+  pnpmEntry: string
+  /** npm registry base URL. */
+  registryUrl: string
+  /** npm dist-tag selected by this desktop release channel. */
+  distTag: string
+  /** Registry request deadline in milliseconds. */
+  checkTimeoutMs: number
+  /** Package installation deadline in milliseconds. */
+  installTimeoutMs: number
+  /** In-memory tail bound for each child output stream. */
+  maxOutputBytes: number
+  /** TERM-to-KILL escalation grace for managed child process trees. */
+  graceMs: number
+}
+
+/** Runtime source selected for the current desktop Host. */
+export type DesktopRuntimeSource = 'bundled' | 'managed'
+```
+
+来源：[`packages/host/runtime-updater/src/index.ts:33`](../packages/host/runtime-updater/src/index.ts)
 
 <a id="deepseek-aidsh-host-webserver"></a>
 
@@ -3082,6 +3119,7 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-settings-plugin-installer`（[`packages/client/ui-settings-plugin-installer/src/index.ts`](../packages/client/ui-settings-plugin-installer/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-plugin-inventory`（[`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-plugins`（[`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-settings-runtime-updater`（[`packages/client/ui-settings-runtime-updater/src/index.ts`](../packages/client/ui-settings-runtime-updater/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar`（[`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-skill`（[`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-subagent`（[`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts)）

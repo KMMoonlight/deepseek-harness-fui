@@ -1,6 +1,9 @@
 // Desktop FUI acceptance: the real Web composition enables the desktop-only
-// Host installer and Settings contribution under the application markers.
+// Host installer, runtime updater, and Settings contributions under the application markers.
 // The scenario performs no package mutation and no model call.
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
@@ -14,6 +17,7 @@ import { newEnglishPage, saveFailureShot } from './support.ts'
 const FUI_OVERLAY = fileURLToPath(new URL('../../../packages/bundle/fui-app/cordis.patch.yml', import.meta.url))
 const CLI_ENTRY = fileURLToPath(new URL('../../cli/lib/bin.js', import.meta.url))
 const EXPECTED = fileURLToPath(new URL('./snapshots/desktop-plugin-installation/form.expected.md', import.meta.url))
+const RUNTIME_EXPECTED = fileURLToPath(new URL('./snapshots/desktop-plugin-installation/runtime.expected.md', import.meta.url))
 const MODE = webSnapshotMode()
 
 describe('web e2e: desktop plugin installation', () => {
@@ -21,12 +25,22 @@ describe('web e2e: desktop plugin installation', () => {
   let browser: Browser
   let page: Page
   let tripwire: ReturnType<typeof watchConsole>
+  let runtimeRoot: string
   const originalDesktop = process.env.DSH_DESKTOP
   const originalCliEntry = process.env.DSH_DESKTOP_CLI_ENTRY
+  const originalPnpmEntry = process.env.DSH_PNPM_ENTRY
+  const originalRuntimeRoot = process.env.DSH_DESKTOP_RUNTIME_ROOT
+  const originalRuntimeSource = process.env.DSH_DESKTOP_RUNTIME_SOURCE
+  const originalRuntimeVersion = process.env.DSH_DESKTOP_RUNTIME_VERSION
 
   beforeAll(async () => {
+    runtimeRoot = await mkdtemp(join(tmpdir(), 'dsh-desktop-runtime-e2e-'))
     process.env.DSH_DESKTOP = '1'
     process.env.DSH_DESKTOP_CLI_ENTRY = CLI_ENTRY
+    process.env.DSH_PNPM_ENTRY = CLI_ENTRY
+    process.env.DSH_DESKTOP_RUNTIME_ROOT = runtimeRoot
+    process.env.DSH_DESKTOP_RUNTIME_SOURCE = 'bundled'
+    process.env.DSH_DESKTOP_RUNTIME_VERSION = '0.1.0-rc.5'
     scaffold = await launchWebScaffold({ extraOverlayPath: FUI_OVERLAY })
     browser = await chromium.launch()
     page = await newEnglishPage(browser, 900)
@@ -53,7 +67,31 @@ describe('web e2e: desktop plugin installation', () => {
       else process.env.DSH_DESKTOP = originalDesktop
       if (originalCliEntry === undefined) delete process.env.DSH_DESKTOP_CLI_ENTRY
       else process.env.DSH_DESKTOP_CLI_ENTRY = originalCliEntry
+      if (originalPnpmEntry === undefined) delete process.env.DSH_PNPM_ENTRY
+      else process.env.DSH_PNPM_ENTRY = originalPnpmEntry
+      if (originalRuntimeRoot === undefined) delete process.env.DSH_DESKTOP_RUNTIME_ROOT
+      else process.env.DSH_DESKTOP_RUNTIME_ROOT = originalRuntimeRoot
+      if (originalRuntimeSource === undefined) delete process.env.DSH_DESKTOP_RUNTIME_SOURCE
+      else process.env.DSH_DESKTOP_RUNTIME_SOURCE = originalRuntimeSource
+      if (originalRuntimeVersion === undefined) delete process.env.DSH_DESKTOP_RUNTIME_VERSION
+      else process.env.DSH_DESKTOP_RUNTIME_VERSION = originalRuntimeVersion
+      await rm(runtimeRoot, { recursive: true, force: true })
     }
+  })
+
+  it('shows the managed runtime control without checking the registry on mount', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-desktop-runtime-updater'))
+    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Settings' })
+    await dialog.getByRole('heading', { name: 'Desktop runtime', exact: true }).waitFor({ timeout: 10_000 })
+    expect(await dialog.getByText('0.1.0-rc.5', { exact: true }).count()).toBe(1)
+    expect(await dialog.getByText('Bundled with app', { exact: true }).count()).toBe(1)
+    expect(await dialog.getByRole('button', { name: 'Check and update', exact: true }).isEnabled()).toBe(true)
+    const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
+    await compareOrRefreshGolden(RUNTIME_EXPECTED, snapshot, MODE)
+    expect(tripwire.pageErrors).toEqual([])
+    expect(tripwire.warnings).toEqual([])
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
   })
 
   it('exposes the trusted package form only in the desktop composition', async () => {

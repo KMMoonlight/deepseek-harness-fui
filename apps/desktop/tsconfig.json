@@ -10,5 +10,13 @@
   },
   "include": [
     "src"
+  ],
+  "references": [
+    {
+      "path": "../../packages/util/home-paths"
+    },
+    {
+      "path": "../../packages/host/runtime-updater"
+    }
   ]
 }

@@ -358,6 +358,13 @@ importers:
         version: 10.0.0
 
   apps/desktop:
+    dependencies:
+      '@deepseek-ai/dsh-home-paths':
+        specifier: workspace:^
+        version: link:../../packages/util/home-paths
+      '@deepseek-ai/dsh-host-runtime-updater':
+        specifier: workspace:^
+        version: link:../../packages/host/runtime-updater
     devDependencies:
       '@types/node':
         specifier: ^22.20.0
@@ -551,6 +558,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-settings-plugins':
         specifier: workspace:^
         version: link:../../../packages/client/ui-settings-plugins
+      '@deepseek-ai/dsh-client-ui-settings-runtime-updater':
+        specifier: workspace:^
+        version: link:../../../packages/client/ui-settings-runtime-updater
       '@deepseek-ai/dsh-client-ui-sidebar':
         specifier: workspace:^
         version: link:../../../packages/client/ui-sidebar
@@ -680,6 +690,9 @@ importers:
       '@deepseek-ai/dsh-host-plugin-inventory':
         specifier: workspace:^
         version: link:../../../packages/host/plugin-inventory
+      '@deepseek-ai/dsh-host-runtime-updater':
+        specifier: workspace:^
+        version: link:../../../packages/host/runtime-updater
       '@deepseek-ai/dsh-host-webserver':
         specifier: workspace:^
         version: link:../../../packages/host/webserver
@@ -1522,6 +1535,9 @@ importers:
       '@deepseek-ai/dsh-host-plugin-inventory':
         specifier: workspace:^
         version: link:../../host/plugin-inventory
+      '@deepseek-ai/dsh-host-runtime-updater':
+        specifier: workspace:^
+        version: link:../../host/runtime-updater
       '@deepseek-ai/dsh-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -1885,6 +1901,12 @@ importers:
       '@deepseek-ai/dsh-client-ui-fui-surface':
         specifier: workspace:^
         version: link:../../client/ui-fui-surface
+      '@deepseek-ai/dsh-client-ui-settings-runtime-updater':
+        specifier: workspace:^
+        version: link:../../client/ui-settings-runtime-updater
+      '@deepseek-ai/dsh-host-runtime-updater':
+        specifier: workspace:^
+        version: link:../../host/runtime-updater
       '@deepseek-ai/dsh-web-app':
         specifier: workspace:^
         version: link:../web-app
@@ -3417,6 +3439,45 @@ importers:
       react:
         specifier: ^18.2.0
         version: 18.3.1
+
+  packages/client/ui-settings-runtime-updater:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-api-remotes':
+        specifier: workspace:^
+        version: link:../../api/remotes
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:^
+        version: link:../locale
+      '@deepseek-ai/dsh-client-runtime':
+        specifier: workspace:^
+        version: link:../runtime
+      '@deepseek-ai/dsh-client-test-runtime':
+        specifier: workspace:^
+        version: link:../../test-support/client-runtime
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: workspace:^
+        version: link:../ui-settings
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:^
+        version: link:../ui-slots
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@testing-library/react':
+        specifier: ^16.1.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/react':
+        specifier: ~18.3.1
+        version: 18.3.31
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
 
   packages/client/ui-sidebar:
     dependencies:
@@ -5727,6 +5788,37 @@ importers:
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:^
         version: link:../../typert/protocol
+
+  packages/host/runtime-updater:
+    dependencies:
+      '@deepseek-ai/dsh-atomic-write':
+        specifier: workspace:^
+        version: link:../../util/atomic-write
+      '@deepseek-ai/dsh-subprocess':
+        specifier: workspace:^
+        version: link:../../subprocess/subprocess
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      semver:
+        specifier: ^7.7.2
+        version: 7.8.5
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-typert-protocol':
+        specifier: workspace:^
+        version: link:../../typert/protocol
+      '@types/semver':
+        specifier: ^7.7.1
+        version: 7.8.0
 
   packages/host/webserver:
     dependencies:
@@ -12320,6 +12412,9 @@ packages:
   '@types/retry@0.12.0':
     resolution: {integrity: sha512-wWKOClTTiizcZhXnPY4wikVAwmdYHp8q6DmC+EJUzAMsycb7HB32Kh9RN4+0gExjmPmZSAQjgURXIGATPegAvA==}
 
+  '@types/semver@7.8.0':
+    resolution: {integrity: sha512-1mAINjtQCXXeLkJ9ehXkwOcBpqtLxiVtKhpUf83DdRNdQKV0iXZpaHYqRr7nj+wvxuJzoAmAwXI+sCNMv1CzLQ==}
+
   '@types/spdx-expression-parse@4.0.0':
     resolution: {integrity: sha512-odQzy87phelGS4inXOzjmusx4hoCVD0IbxUANxHzVkmTzMRTNnUPoq1urIl7S1qf09KcDWKLFIftPmLtgbsAHA==}
 
@@ -18287,6 +18382,8 @@ snapshots:
       '@types/node': 22.20.0
 
   '@types/retry@0.12.0': {}
+
+  '@types/semver@7.8.0': {}
 
   '@types/spdx-expression-parse@4.0.0': {}
 

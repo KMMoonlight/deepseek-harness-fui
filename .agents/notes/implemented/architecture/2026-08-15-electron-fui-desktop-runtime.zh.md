@@ -16,7 +16,7 @@ Status: implemented
 
 preload 会标记 Electron renderer，但不暴露 IPC bridge。FUI 命令栏根据该标记成为原生拖拽区，同时排除交互子元素。BrowserWindow 配置明确允许窗口移动、边缘缩放、最小化、最大化和全屏，并保留平台原生窗口控件。
 
-打包应用通过 `ELECTRON_RUN_AS_NODE=1`，把自己的 Electron 可执行文件作为 Host 的 Node 运行时。`pnpm deploy` 暂存一棵封闭的生产依赖树，其中包含 CLI、Base/Web/FUI bundle、Web 前端、所有必需的工作区 peer 以及 pnpm。暂存阶段会在 Electron Builder 把依赖树复制进应用资源前实体化工作区链接；after-pack hook 则检查 CLI、前端和 pnpm 三个执行入口。
+打包应用通过 `ELECTRON_RUN_AS_NODE=1`，把自己的 Electron 可执行文件作为 Host 的 Node 运行时。`pnpm deploy` 暂存一棵封闭的生产依赖树，其中包含 CLI、Base/Web/FUI bundle、Web 前端、所有必需的工作区 peer 以及 pnpm。暂存阶段会在 Electron Builder 把依赖树复制进应用资源前实体化工作区链接；after-pack hook 则检查 CLI、前端和 pnpm 三个执行入口。从 Harness 用户存储中选中[经过校验的受管运行时](../feature/2026-08-16-desktop-managed-runtime-updates.md)后，这棵依赖树仍作为不可变回退。
 
 普通可写的 `fui` profile 仍位于 `~/.dsh/profiles/fui`。内置 bundle 从打包安装中解析；第三方 bundle 依赖及其 lockfile 留在 profile 中。桌面 Host 通过 `DSH_PNPM_ENTRY` 提供打包的 pnpm JavaScript 入口；`dsh plugin` 随后使用当前兼容 Node 的可执行文件运行该入口，不再解析 shell 命令。这属于部署接线，而不是第二套插件安装器：依赖对账和 `dsh.bundle.patch` 激活仍由现有 profile 命令负责。
 
@@ -41,6 +41,7 @@ Host supervisor 测试覆盖分块就绪解析、非法来源、启动失败、�
 - 用户点击已安装应用的图标即可启动；无需启动命令，也无需另装 Node/pnpm。
 - FUI 命令栏在 Electron 中属于原生窗口区域；以后加入的交互子元素必须继续排除在拖拽区之外。
 - 第三方 Cordis plugin 仍可通过桌面设置表单作为 profile bundle 安装。安装属于可信代码执行，新 bundle 生效前必须重启应用。
+- 兼容的已发布 Harness 依赖闭包可以从受管用户存储中选中；无效选择会回退到不可变的打包依赖闭包。
 - Electron、完整 FUI 运行时和 pnpm 会一起分发，因此桌面产物更大。
 - `apps/desktop` 是唯一的桌面应用，并拥有可打包的根目录命令。平台签名属于发布工作，而不是第二套桌面壳实现。
 - Electron 壳不会增加模型可见输入；Session 日志和模型上下文仍由挂载的 Harness plugin 持有。

@@ -1,8 +1,10 @@
 /** Electron application shell for the loopback DeepSeek FUI Host. */
 
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
+import { quarantineManagedRuntimePointer } from '@deepseek-ai/dsh-host-runtime-updater/managed-runtime'
 import {
   app,
   BrowserWindow,
@@ -16,6 +18,7 @@ import {
   type MenuItemConstructorOptions,
 } from 'electron'
 import { createHostSupervisor, spawnDshFui, type HostSupervisor } from './host-supervisor.ts'
+import { selectRuntimeCandidates } from './runtime-selection.ts'
 import { createDesktopLifecycle, type DesktopLifecycle } from './window-lifecycle.ts'
 
 const APP_NAME = 'DeepSeek FUI'
@@ -30,6 +33,9 @@ interface HostPaths {
   readonly pnpmEntry?: string
   readonly cwd: string
   readonly electronRunAsNode: boolean
+  readonly runtimeRoot: string
+  readonly version: string
+  readonly source: 'bundled' | 'managed'
 }
 
 let mainWindow: BrowserWindow | undefined
@@ -40,23 +46,49 @@ let hostOrigin: string | undefined
 let bootQuitPromise: Promise<void> | undefined
 let quitReleased = false
 
-/** Resolve artifacts from the checkout in development and resourcesPath when packaged. */
-function hostPaths(): HostPaths {
+function packageVersion(cliEntry: string): string {
+  const manifestPath = resolve(dirname(cliEntry), '../package.json')
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { version?: unknown }
+  if (typeof manifest.version !== 'string') {
+    throw new Error(`desktop Host manifest has no version: ${manifestPath}`)
+  }
+  return manifest.version
+}
+
+/** Resolve the immutable checkout or packaged fallback runtime. */
+function bundledHostPaths(): HostPaths {
+  const runtimeRoot = dshHomePath('desktop-runtime')
   if (!app.isPackaged) {
+    const cliEntry = join(REPOSITORY_ROOT, 'apps/cli/lib/bin.js')
     return {
       nodeExecutable: process.env.DSH_DESKTOP_NODE_EXECUTABLE ?? 'node',
-      cliEntry: join(REPOSITORY_ROOT, 'apps/cli/lib/bin.js'),
+      cliEntry,
+      pnpmEntry: join(REPOSITORY_ROOT, 'node_modules/pnpm/bin/pnpm.cjs'),
       cwd: process.cwd(),
       electronRunAsNode: false,
+      runtimeRoot,
+      version: packageVersion(cliEntry),
+      source: 'bundled',
     }
   }
+  const cliEntry = join(process.resourcesPath, 'host/node_modules/@deepseek-ai/dsh/lib/bin.js')
   return {
     nodeExecutable: process.execPath,
-    cliEntry: join(process.resourcesPath, 'host/node_modules/@deepseek-ai/dsh/lib/bin.js'),
+    cliEntry,
     pnpmEntry: join(process.resourcesPath, 'host/node_modules/pnpm/bin/pnpm.cjs'),
     cwd: app.getPath('home'),
     electronRunAsNode: true,
+    runtimeRoot,
+    version: packageVersion(cliEntry),
+    source: 'bundled',
   }
+}
+
+/** Prefer a validated managed runtime while retaining the packaged baseline. */
+async function hostCandidates(): Promise<readonly HostPaths[]> {
+  const bundled = bundledHostPaths()
+  if (!app.isPackaged) return [bundled]
+  return selectRuntimeCandidates(bundled)
 }
 
 function assertHostArtifacts(paths: HostPaths): void {
@@ -190,25 +222,48 @@ function requestAppQuit(): Promise<void> {
 
 async function boot(): Promise<void> {
   if (bootQuitPromise !== undefined) return
-  const paths = hostPaths()
-  assertHostArtifacts(paths)
-  host = createHostSupervisor({
-    spawnHost: () => spawnDshFui({
-      ...paths,
-      env: {
-        ...process.env,
-        DSH_DESKTOP: '1',
-        DSH_DESKTOP_CLI_ENTRY: paths.cliEntry,
-        ...(paths.pnpmEntry === undefined ? {} : { DSH_PNPM_ENTRY: paths.pnpmEntry }),
-      },
-    }),
-    log: chunk => process.stderr.write(chunk),
-    onUnexpectedExit: ({ code, signal }) => {
-      console.error(`desktop Host exited unexpectedly (code ${String(code)}, signal ${String(signal)})`)
-      void requestAppQuit()
-    },
-  })
-  hostOrigin = await host.start()
+  const candidates = await hostCandidates()
+  const failures: unknown[] = []
+  for (const paths of candidates) {
+    try {
+      assertHostArtifacts(paths)
+      const candidate = createHostSupervisor({
+        spawnHost: () => spawnDshFui({
+          ...paths,
+          env: {
+            ...process.env,
+            DSH_DESKTOP: '1',
+            DSH_DESKTOP_CLI_ENTRY: paths.cliEntry,
+            DSH_DESKTOP_RUNTIME_ROOT: paths.runtimeRoot,
+            DSH_DESKTOP_RUNTIME_SOURCE: paths.source,
+            DSH_DESKTOP_RUNTIME_VERSION: paths.version,
+            ...(paths.pnpmEntry === undefined ? {} : { DSH_PNPM_ENTRY: paths.pnpmEntry }),
+          },
+        }),
+        log: chunk => process.stderr.write(chunk),
+        onUnexpectedExit: ({ code, signal }) => {
+          console.error(`desktop Host exited unexpectedly (code ${String(code)}, signal ${String(signal)})`)
+          void requestAppQuit()
+        },
+      })
+      host = candidate
+      hostOrigin = await candidate.start()
+      break
+    } catch (error) {
+      failures.push(error)
+      await host?.shutdown().catch((shutdownError: unknown) => { failures.push(shutdownError) })
+      host = undefined
+      if (paths.source === 'managed') {
+        console.error(`desktop managed runtime ${paths.version} failed to start; using the bundled runtime:`, error)
+        await quarantineManagedRuntimePointer(paths.runtimeRoot).catch((quarantineError: unknown) => {
+          console.error('desktop failed to quarantine the rejected runtime pointer:', quarantineError)
+        })
+      }
+    }
+  }
+  if (hostOrigin === undefined) {
+    throw new AggregateError(failures, 'desktop could not start a managed or bundled Host runtime')
+  }
   hardenSession()
   lifecycle = createDesktopLifecycle({
     getWindow: () => mainWindow,
