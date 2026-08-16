@@ -74,6 +74,24 @@ describe('RepositoryCleaner', () => {
     expect(existsSync(join(root, 'native/landlock-run/tsconfig.tsbuildinfo'))).toBe(false)
   })
 
+  it('removes the Electron shell outputs while preserving its tracked runtime workspace', async () => {
+    const root = fixture()
+    write(join(root, 'tsconfig.json'), JSON.stringify({}))
+    write(join(root, 'apps/desktop/lib/types/main.js'))
+    write(join(root, 'apps/desktop/dist/mac-arm64/app'))
+    write(join(root, 'apps/desktop/runtime-host/host'))
+    write(join(root, 'apps/desktop/runtime/package.json'), '{}\n')
+    write(join(root, 'apps/desktop/src/main.ts'), 'export {}\n')
+
+    await new RepositoryCleaner(root).clean()
+
+    expect(existsSync(join(root, 'apps/desktop/lib'))).toBe(false)
+    expect(existsSync(join(root, 'apps/desktop/dist'))).toBe(false)
+    expect(existsSync(join(root, 'apps/desktop/runtime-host'))).toBe(false)
+    expect(existsSync(join(root, 'apps/desktop/runtime/package.json'))).toBe(true)
+    expect(existsSync(join(root, 'apps/desktop/src/main.ts'))).toBe(true)
+  })
+
   it('refuses project outputs reached through a symlink outside the repository', async () => {
     const root = fixture()
     const externalProject = fixture()

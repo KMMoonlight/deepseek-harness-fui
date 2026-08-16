@@ -2700,9 +2700,6 @@ importers:
       react:
         specifier: ^18.2.0
         version: 18.3.1
-      react-dom:
-        specifier: ^18.2.0
-        version: 18.3.1(react@18.3.1)
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.6.0
@@ -2716,9 +2713,6 @@ importers:
       '@types/react':
         specifier: ~18.3.1
         version: 18.3.31
-      '@types/react-dom':
-        specifier: ~18.3.0
-        version: 18.3.7(@types/react@18.3.31)
 
   packages/client/ui-fui-layout:
     devDependencies:
@@ -3442,9 +3436,6 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
-      '@deepseek-ai/dsh-api-gateway':
-        specifier: workspace:^
-        version: link:../../api/gateway
       '@deepseek-ai/dsh-client-locale':
         specifier: workspace:^
         version: link:../locale
@@ -4790,9 +4781,6 @@ importers:
       '@deepseek-ai/dsh-client-runtime':
         specifier: workspace:^
         version: link:../../client/runtime
-      '@deepseek-ai/dsh-client-ui-slots':
-        specifier: workspace:^
-        version: link:../../client/ui-slots
       '@deepseek-ai/dsh-client-ui-theme':
         specifier: workspace:^
         version: link:../../client/ui-theme

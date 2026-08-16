@@ -78,6 +78,14 @@ export class RepositoryCleaner {
       canonicalRoot,
     )
 
+    // The Electron shell stays out of the project-reference graph, so its
+    // outputs never reach the walk below; remove its gitignored build, staging,
+    // and distribution directories explicitly. apps/desktop/runtime is tracked
+    // (a workspace manifest), never generated, and must survive.
+    await this.addIfPresent(targets, join(this.root, 'apps/desktop/lib'), canonicalRoot)
+    await this.addIfPresent(targets, join(this.root, 'apps/desktop/dist'), canonicalRoot)
+    await this.addIfPresent(targets, join(this.root, 'apps/desktop/runtime-host'), canonicalRoot)
+
     // The root project-reference graph is the source of truth for live build targets.
     // Each emitting project declares lib/types as outDir; its parent lib also owns
     // the sibling runtime bundles, so the complete build output root is removed.

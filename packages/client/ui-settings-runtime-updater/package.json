@@ -32,7 +32,6 @@
   "dsh": {
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-api-gateway",
         "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-ui-settings",
         "@deepseek-ai/dsh-client-locale"
@@ -46,7 +45,6 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-api-gateway": "workspace:^",
     "@deepseek-ai/dsh-client-locale": "workspace:^",
     "@deepseek-ai/dsh-client-runtime": "workspace:^",
     "@deepseek-ai/dsh-client-ui-settings": "workspace:^",
@@ -57,7 +55,6 @@
     "react": "^18.2.0"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-api-gateway": "workspace:^",
     "@deepseek-ai/dsh-client-locale": "workspace:^",
     "@deepseek-ai/dsh-client-runtime": "workspace:^",
     "@deepseek-ai/dsh-client-test-runtime": "workspace:^",
