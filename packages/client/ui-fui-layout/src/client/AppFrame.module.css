@@ -1,6 +1,6 @@
 .frame {
   --fui-shell-command-height: 40px;
-  --fui-shell-status-height: 24px;
+  --fui-shell-status-height: 32px;
   --fui-shell-command-inline: 12px;
   --fui-shell-command-leading: var(--fui-shell-command-inline);
 
@@ -197,15 +197,11 @@
   -webkit-app-region: no-drag;
 }
 
-.commandIdentity,
-.commandStatus {
+.commandIdentity {
   display: flex;
   align-items: center;
   gap: 8px;
   white-space: nowrap;
-}
-
-.commandIdentity {
   color: var(--fui-text);
 }
 
@@ -222,20 +218,41 @@
   letter-spacing: 0.18em;
 }
 
-.commandDivider,
-.commandStatus {
+.commandDivider {
   color: var(--fui-text-dim);
 }
 
 .statusBar {
   grid-row: 3;
+  position: relative; /* anchors statusSlot, the center-column readout band */
   gap: 9px;
-  padding: 0 10px;
+  padding: 0 12px;
   color: var(--fui-text-muted);
   background: var(--fui-panel-solid);
   border-top: 1px solid var(--fui-line);
-  font-size: 8px;
-  letter-spacing: 0.17em;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+/* Fixed identity segments never shrink or wrap. The readout lives in
+   statusSlot (out of flow), so nothing here competes for space. */
+.statusBar > span:not(.statusSpacer) {
+  flex-shrink: 0;
+}
+
+/* Center-column readout band: absolutely stretched between the sidebar and
+   details borders (inline left/right from the concession solve), so injected
+   'shell.status' entries render centered on the composer axis and elide
+   within the band. */
+.statusSlot {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .statusRule {
@@ -259,7 +276,6 @@
 
   .commandIdentity > :nth-child(2),
   .commandIdentity > :nth-child(3),
-  .commandStatus > :first-child,
   .statusRule,
   .statusBar > :nth-child(3) {
     display: none;

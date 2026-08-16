@@ -1,6 +1,6 @@
 - link "Skip to main content":
   - /url: "#dsh-main-content"
-- banner: DSH Standby
+- banner: DSH
 - button "New session"
 - button "Open sidebar":
   - img

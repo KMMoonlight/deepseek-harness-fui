@@ -36,6 +36,7 @@ External packages that a workspace package resolves at runtime. The tier covers 
 | [`@anthropic-ai/sdk`](https://github.com/anthropics/anthropic-sdk-typescript) | MIT |
 | [`@babel/code-frame`](https://github.com/babel/babel) | MIT |
 | [`@earendil-works/pi-ai`](https://github.com/earendil-works/pi) | MIT |
+| [`@fontsource/fusion-pixel-12px-monospaced-sc`](https://github.com/fontsource/font-files) | OFL-1.1 |
 | [`@fontsource/space-mono`](https://github.com/fontsource/font-files) | OFL-1.1 |
 | [`@joplin/turndown-plugin-gfm`](https://github.com/laurent22/joplin-turndown-plugin-gfm) | MIT |
 | [`@jridgewell/gen-mapping`](https://github.com/jridgewell/sourcemaps) | MIT |
@@ -120,6 +121,8 @@ The installed SDK 0.3.220 declares the following optional platform packages. Eac
 ## Bundled font software
 
 The Web frontend used by browser clients and the desktop shell bundles the published Space Mono web-font files from `@fontsource/space-mono` under OFL-1.1. The build preserves the font bytes and ships their copyright notice and complete license at [`apps/web/public/licenses/space-mono-OFL-1.1.txt`](apps/web/public/licenses/space-mono-OFL-1.1.txt).
+
+The Web frontend used by browser clients and the desktop shell bundles the published Fusion Pixel web-font files from `@fontsource/fusion-pixel-12px-monospaced-sc` under OFL-1.1. The build preserves the font bytes and ships their copyright notice and complete license at [`apps/web/public/licenses/fusion-pixel-OFL-1.1.txt`](apps/web/public/licenses/fusion-pixel-OFL-1.1.txt).
 
 
 ## Development-only npm dependencies

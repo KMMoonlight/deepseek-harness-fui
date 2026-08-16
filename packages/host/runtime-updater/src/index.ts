@@ -23,6 +23,8 @@ import {
 } from './managed-runtime.ts'
 import type {
   DesktopRuntimeSource,
+  RuntimeUpdateCheckRequest,
+  RuntimeUpdateCheckResult,
   RuntimeUpdateDescribeRequest,
   RuntimeUpdateDescription,
   RuntimeUpdateFailure,
@@ -93,7 +95,7 @@ function failed(
   code: RuntimeUpdateFailure['code'],
   message: string,
   detail?: Omit<RuntimeUpdateFailure, 'code' | 'message'>,
-): RuntimeUpdateResult {
+): Extract<RuntimeUpdateResult, { ok: false }> {
   return { ok: false, error: { code, message, ...detail } }
 }
 
@@ -226,6 +228,28 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
   }
 
   /**
+   * Check the configured npm tag without installing anything.
+   * @param _request - Empty request; renderer input cannot choose package, registry, or tag.
+   * @param signal - Remote request lifetime.
+   * @returns the latest tagged version beside availability and compatibility flags, or a stable business failure.
+   */
+  @Remote('check')
+  async check(_request: RuntimeUpdateCheckRequest, signal: AbortSignal): Promise<RuntimeUpdateCheckResult> {
+    const checked = await this.fetchRegistryManifest(signal)
+    if (!checked.ok) return checked.result
+    const latest = checked.manifest.version
+    return {
+      ok: true,
+      value: {
+        currentVersion: this.config.currentVersion,
+        latestVersion: latest,
+        updateAvailable: gt(latest, this.config.currentVersion),
+        compatible: satisfies(latest, this.config.compatibleDshRange, { includePrerelease: true }),
+      },
+    }
+  }
+
+  /**
    * Check the configured npm tag and install a compatible newer runtime.
    * @param _request - Empty request; all authority stays in Host configuration.
    * @param signal - Remote request lifetime; cancellation terminates package-manager work.
@@ -245,7 +269,7 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
 
   private async run(requestSignal: AbortSignal): Promise<RuntimeUpdateResult> {
     requestSignal.throwIfAborted()
-    const checked = await this.check(requestSignal)
+    const checked = await this.fetchRegistryManifest(requestSignal)
     if (!checked.ok) return checked.result
     const latest = checked.manifest
     if (!gt(latest.version, this.config.currentVersion)) {
@@ -269,9 +293,9 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
     return this.install(latest.version, requestSignal)
   }
 
-  private async check(requestSignal: AbortSignal): Promise<
+  private async fetchRegistryManifest(requestSignal: AbortSignal): Promise<
     | { readonly ok: true; readonly manifest: RegistryManifest }
-    | { readonly ok: false; readonly result: RuntimeUpdateResult }
+    | { readonly ok: false; readonly result: Extract<RuntimeUpdateCheckResult, { ok: false }> }
   > {
     const timeoutSignal = (this.internals.timeoutSignal ?? (milliseconds => AbortSignal.timeout(milliseconds)))(
       this.config.checkTimeoutMs,

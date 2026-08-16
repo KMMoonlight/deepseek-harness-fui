@@ -12,7 +12,7 @@ Status: implemented
 
 ## 决策
 
-[`THIRD_PARTY_NOTICES.md`](../../../../THIRD_PARTY_NOTICES.md) 由 [`scripts/gen-third-party-notices.ts`](../../../../scripts/gen-third-party-notices.ts) 依据各工作区 manifest、`vendor/README.md`、`pyproject.toml` 与 `pnpm-workspace.yaml` 生成。同一生成器还会将 Space Mono 的完整版权声明与 OFL-1.1 文本复制到 [`apps/web/public/licenses/space-mono-OFL-1.1.txt`](../../../../apps/web/public/licenses/space-mono-OFL-1.1.txt)，Vite 会把它纳入同时提供给浏览器客户端和桌面壳的 Web 前端。根 README 双语两侧都从「许可证」一节链到第三方声明文件。
+[`THIRD_PARTY_NOTICES.md`](../../../../THIRD_PARTY_NOTICES.md) 由 [`scripts/gen-third-party-notices.ts`](../../../../scripts/gen-third-party-notices.ts) 依据各工作区 manifest、`vendor/README.md`、`pyproject.toml` 与 `pnpm-workspace.yaml` 生成。同一生成器还会把每个已评审字体的完整版权声明与许可证文本复制为 `apps/web/public/licenses/` 下提交在库的资源（目前是 Space Mono 与 Fusion Pixel，均为 OFL-1.1），Vite 会把它纳入同时提供给浏览器客户端和桌面壳的 Web 前端。根 README 双语两侧都从「许可证」一节链到第三方声明文件。
 
 **新鲜度会得到维护，而非仅靠校验。** 只要暂存了生成器的任一输入——任何 manifest、工作区声明、根锁文件、`vendor/README.md`、某个 `pyproject.toml`、生成器自身，或持有构建期 pin 的脚本——pre-commit 任务就会重新生成并暂存第三方声明和随包分发的字体许可证资源，改依赖的人不必事后再折返跑一次生成器。两个产物已提交的字节随后都由 [`scripts/gen-third-party-notices.spec.ts`](../../../../scripts/gen-third-party-notices.spec.ts) 断言，而测试 lane 本就会跑这个文件——这项校验不增加门禁进程、不占调度位、也不新增 CI 步骤。需要单独校验时，`pnpm run verify-third-party-notices` 仍然可用。
 
@@ -28,13 +28,13 @@ manifest 集合由根 `pnpm-workspace.yaml` 声明的 `packages:` 成员派生�
 
 项目所有者另行授权分发每个官方 `@anthropic-ai/claude-agent-sdk` 版本，以及该版本通过 `optionalDependencies` 声明的官方 Claude Code CLI 与平台载荷。生成器将其表示为一项精确匹配直接包身份的例外，而非宽松许可证覆盖项：`SEE LICENSE IN README.md` 与 `SEE LICENSE IN LICENSE.md` 仍归类为非宽松，所有无关的非宽松运行时依赖仍以默认拒绝方式失败。存在该 SDK 时，生成器会读取其已安装 manifest，拒绝不符合官方 SDK 载荷前缀的可选包身份，推导当前 SDK、CLI 与载荷版本，核验已安装宿主载荷的身份、版本和声明许可证字段，并在单独的声明章节中渲染 SDK 声明的完整载荷集合。版本、声明许可证和载荷集合发生变化时无需新的身份授权，但仍须经过常规的依赖、锁文件、兼容性、条款和声明评审。
 
-项目所有者授权按照 `@fontsource/space-mono` 所声明的 `OFL-1.1` 条款分发该包发布的 Web 字体文件。此授权同时精确匹配包身份与许可证声明；其他 Fontsource 包或 Space Mono 未来的许可证变更仍会被默认拒绝。Web 构建保留上游发布的字体字节，并将包内版权声明与完整 OFL 文本复制到固定公共资源路径。浏览器客户端直接取得这份 Web 分发，桌面壳则从自身 backend 取得同一批文件。字体软件继续适用 OFL-1.1，项目自身的许可证声明不会重新许可该字体。
+项目所有者授权分发生成器 `REVIEWED_FONTS` 表中记录的已评审字体包——目前是 `@fontsource/space-mono` 与 `@fontsource/fusion-pixel-12px-monospaced-sc`，各按其声明的 `OFL-1.1` 条款。每项授权都精确匹配包身份与许可证声明；其他字体包或未来的许可证变更仍会被默认拒绝。Web 构建保留上游发布的字体字节，并将每个包的版权声明与完整 OFL 文本复制到固定公共资源路径。浏览器客户端直接取得这份 Web 分发，桌面壳则从自身 backend 取得同一批文件。字体软件继续适用 OFL-1.1，项目自身的许可证声明不会重新许可该字体。
 
 ## 测试
 
 断言新鲜度的同一个 spec 也用 fixture（测试前置数据）manifest 钉住分层规则，覆盖促成该规则的两个场景：测试支撑包的 `dependencies` 条目，以及没有任何应用挂载的插件包。它还把各解析器钉在那些原本会让某个包无声消失的形态上：不再覆盖全部收编目录的 `vendor/README.md` 表、含 extras 的依赖数组（`"httpx[http2]"`）、完全不带版本的依赖、作者自取名字的 `[dependency-groups]` 表，以及任何硬编码列表都不含的工作区成员区域。这些都是静默漏报路径——正是披露文件最担不起的失败方式。
 
-运行时授权测试证明：只有精确匹配的直接 Claude SDK 身份会绕过通常的非宽松运行时拒绝，而 Space Mono 必须同时匹配其准确包身份和已经评审的 `OFL-1.1` 声明。两种绕过都不会改变许可证分类。同一 spec 会将生成的公共字体许可证资源与已安装包逐字节比较，并拒绝缺失的版权行或 OFL-1.1 标题。Claude 载荷测试仍从 SDK manifest 而非版本或平台允许列表派生载荷集合；SDK 身份错误、载荷缺失或存在无关的可选包身份时，测试都会失败。
+运行时授权测试证明：只有精确匹配的直接 Claude SDK 身份会绕过通常的非宽松运行时拒绝，而每个已评审字体都必须同时匹配其准确包身份和已经评审的 `OFL-1.1` 声明。两种绕过都不会改变许可证分类。同一 spec 会将每个生成的公共字体许可证资源与已安装包逐字节比较，并拒绝缺失的版权行或 OFL-1.1 标题。Claude 载荷测试仍从 SDK manifest 而非版本或平台允许列表派生载荷集合；SDK 身份错误、载荷缺失或存在无关的可选包身份时，测试都会失败。
 
 ## 考虑过的替代方案
 
@@ -50,7 +50,7 @@ manifest 集合由根 `pnpm-workspace.yaml` 声明的 `packages:` 成员派生�
 
 **将 Claude SDK 条款视为宽松条款，或新增可复用的非宽松允许列表。** 两种方案都会误述上游声明，并让无关运行时依赖继承从未授予它的授权。这项窄例外只匹配官方直接 SDK 身份；其可选载荷身份仅作为该 SDK 声明的数据被接受，并继续明确归类为非宽松。
 
-**将 OFL-1.1 一律归为宽松许可证。** OFL 允许捆绑和再分发，但附带字体专用条件，包括携带版权声明与完整许可证文本，并让字体继续适用该许可证。若把它加入通用宽松集合，未来任何 OFL 包都能在未验证这些分发资源的情况下通过。Space Mono 决策因此只匹配一个包名与许可证组合，并生成所需许可证资源。
+**将 OFL-1.1 一律归为宽松许可证。** OFL 允许捆绑和再分发，但附带字体专用条件，包括携带版权声明与完整许可证文本，并让字体继续适用该许可证。若把它加入通用宽松集合，未来任何 OFL 包都能在未验证这些分发资源的情况下通过。因此每个已评审字体都在 `REVIEWED_FONTS` 里占有独立的包名与许可证条目，并生成对应的许可证资源。
 
 **把披露文件做成双语对。** 其他根文档都是成对的，但这份文件是上游包名、SPDX 标识与网址构成的表格，可翻译的只有寥寥几段章节导语。`scripts/translation-pairing.ts` 的发现范围限定在 `README*`、`.agents/notes/**`、`docs/**` 与 `python/**`，根目录下的非 README 文件在构造上就不属于双语语料；双语入口由 README 对承担。
 
@@ -64,4 +64,4 @@ manifest 集合由根 `pnpm-workspace.yaml` 声明的 `packages:` 成员派生�
 
 Claude 身份例外刻意比其启用的载荷披露范围更窄。升级 SDK 无需新的所有者授权，但如果已安装的 SDK 未公开自身版本、CLI 版本和至少一个官方平台载荷，或当前宿主载荷与 SDK 声明不符，重新生成就会失败。维护者仍须评审发生变化的条款与兼容性；生成器会阻止授权悄然扩大到其他包。
 
-Space Mono 只有在包继续声明 `OFL-1.1` 并携带已经评审的版权与许可证标记时，升级才继续获得授权。许可证发生变化或文本缺失都会让重新生成失败；Web 构建会将生成文本复制到公共资源旁，让浏览器客户端和由 backend 提供页面的桌面壳都能取得 OFL 所要求的声明。
+已评审字体只有在包继续声明其已评审的许可证并携带已经评审的版权与许可证标记时，升级才继续获得授权。许可证发生变化或文本缺失都会让重新生成失败；Web 构建会将生成文本复制到公共资源旁，让浏览器客户端和由 backend 提供页面的桌面壳都能取得 OFL 所要求的声明。

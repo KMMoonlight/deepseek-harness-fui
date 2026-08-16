@@ -43,7 +43,9 @@ describe('web e2e: FUI surface', () => {
     const frame = page.locator('[class*="frame"]').first()
     await expect.poll(() => page.locator('body[data-fui-surface]').count()).toBe(1)
     await expect.poll(() => page.locator('.fui-scanlines').count()).toBe(1)
-    await expect.poll(() => page.locator('[data-tone="ok"]').count()).toBe(1)
+    // The rail carries only the product identity: no status badge (or any
+    // toned chrome) occupies the viewport's top-right corner.
+    await expect.poll(() => page.locator('[data-tone]').count()).toBe(0)
 
     const desktop = await captureStableAria(page, '[class*="frame"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(DESKTOP_EXPECTED, desktop, MODE)

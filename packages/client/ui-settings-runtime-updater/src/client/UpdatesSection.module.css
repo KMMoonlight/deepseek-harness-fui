@@ -1,0 +1,156 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 760px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  color: var(--dsw-alias-label-primary);
+}
+
+.title,
+.intro,
+.success,
+.failure {
+  margin: 0;
+}
+
+.title {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.intro,
+.version {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.version {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.version dt,
+.version dd {
+  margin: 0;
+}
+
+.version dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.version code {
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--ds-font-family-code);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.actions button {
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.actions button:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.primary {
+  border: 1px solid var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-label-onbrand);
+}
+
+.secondary {
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+}
+
+.success {
+  color: var(--dsw-alias-state-success-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.failure {
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+:global(body[data-fui-surface]) .section,
+:global(body[data-fui-surface]) .actions button {
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .section {
+  border-bottom-color: var(--fui-line);
+}
+
+:global(body[data-fui-surface]) .title {
+  color: var(--fui-warn);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+:global(body[data-fui-surface]) .intro,
+:global(body[data-fui-surface]) .version {
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .actions button {
+  border-radius: 0;
+}
+
+:global(body[data-fui-surface]) .primary {
+  border-color: var(--fui-primary-line-strong);
+  background: var(--fui-primary-soft);
+  color: var(--fui-primary);
+}
+
+:global(body[data-fui-surface]) .secondary {
+  border-color: var(--fui-line);
+  color: var(--fui-text);
+}
+
+:global(body[data-fui-surface]) .actions button:active {
+  transform: translate(1px, 1px);
+}
+
+:global(body[data-fui-surface]) .version code {
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+}
+
+:global(body[data-fui-surface]) .success {
+  color: var(--fui-ok);
+}
+
+:global(body[data-fui-surface]) .failure {
+  color: var(--fui-danger);
+}

@@ -105,6 +105,7 @@
 }
 
 /* 字体切换:默认 Space Mono(复古未来主义打字机感)。
+   中文回退到 Fusion Pixel 12px Monospaced SC(Space Mono 无中文字形)。
    在根元素上设置 data-fui-font 切换:
    - space-mono(默认)  复古未来主义打字机感
    - dotgothic16       16 点阵哥特,像素 CRT 感
@@ -116,7 +117,7 @@
    - share-tech-mono   现代科幻 HUD 风(v0 默认) */
 :root,
 [data-fui-font='space-mono'] {
-  --fui-font: 'Space Mono', ui-monospace, 'SFMono-Regular', 'PingFang SC', monospace;
+  --fui-font: 'Space Mono', ui-monospace, 'SFMono-Regular', 'Fusion Pixel 12px Monospaced SC', 'PingFang SC', monospace;
 }
 [data-fui-font='dotgothic16'] {
   --fui-font: 'DotGothic16', ui-monospace, monospace;

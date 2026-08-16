@@ -93,6 +93,15 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * `id` is added beside the shipped entries instead of replacing them.
      */
     'shell.overlay': { kind: 'list'; scope: 'root' }
+    /**
+     * The bottom status rail's session readout seat, after the workspace
+     * segment. Session scope: entries read the live conversation through the
+     * framework's session standard kit (`useSession`/`useProjection`) and
+     * mount nothing while no session is current. Additive: a fresh `id` sits
+     * beside other entries in `order`. The shipped occupant is
+     * ui-conversation's session stats line.
+     */
+    'shell.status': { kind: 'list'; scope: 'session' }
   }
 }
 
@@ -142,6 +151,7 @@ export function apply(ctx: ClientContext): void {
         'conversation': { kind: 'single', scope: 'session-maybe' },
         'details': { kind: 'single', scope: 'session' },
         'shell.overlay': { kind: 'list', scope: 'root' },
+        'shell.status': { kind: 'list', scope: 'session' },
       },
       // Exclusive store: the factory itself — the framework instantiates per
       // entry and delivers useStore/actions to AppFrame as standard props.

@@ -4,11 +4,10 @@ import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import {
   CLAUDE_AGENT_SDK_PACKAGE,
-  SPACE_MONO_FONT_LICENSE,
-  SPACE_MONO_FONT_PACKAGE,
-  SPACE_MONO_LICENSE_OUT,
+  REVIEWED_FONTS,
   claudeDistributionFromManifest,
   collectPythonDependencies,
+  fontLicenseText,
   isOwnerAuthorizedRuntime,
   isPermissive,
   type Manifest,
@@ -16,12 +15,21 @@ import {
   parsePyprojectRequirements,
   parseVendoredRows,
   render,
-  spaceMonoLicenseText,
   tierExternalDeps,
   virtualManifest,
 } from './gen-third-party-notices.ts'
 
 const root = resolve(import.meta.dirname, '..')
+
+/** Look up one reviewed font by package identity; the table is the review record, so a miss is a test bug. */
+function reviewedFont(pkg: string) {
+  const font = REVIEWED_FONTS.find(entry => entry.package === pkg)
+  if (font === undefined) throw new Error(`reviewed font missing from REVIEWED_FONTS: ${pkg}`)
+  return font
+}
+
+const SPACE_MONO = reviewedFont('@fontsource/space-mono')
+const FUSION_PIXEL = reviewedFont('@fontsource/fusion-pixel-12px-monospaced-sc')
 
 describe('THIRD_PARTY_NOTICES.md', () => {
   // Freshness lives here rather than in its own doc-sync gate: this spec file
@@ -31,12 +39,14 @@ describe('THIRD_PARTY_NOTICES.md', () => {
   it('matches what the generator produces from the current manifests', () => {
     const generated = render()
     expect(generated).toContain('It depends on the third-party software listed below.')
-    expect(generated).toContain(`complete license at [\`${SPACE_MONO_LICENSE_OUT}\`]`)
     expect(readFileSync(resolve(root, 'THIRD_PARTY_NOTICES.md'), 'utf8'), 'stale notices — run `pnpm run gen-third-party-notices`').toBe(generated)
-    expect(
-      readFileSync(resolve(root, SPACE_MONO_LICENSE_OUT), 'utf8'),
-      'stale Space Mono license asset — run `pnpm run gen-third-party-notices`',
-    ).toBe(spaceMonoLicenseText())
+    for (const font of REVIEWED_FONTS) {
+      expect(generated).toContain(`complete license at [\`${font.licenseOut}\`]`)
+      expect(
+        readFileSync(resolve(root, font.licenseOut), 'utf8'),
+        `stale ${font.display} license asset — run \`pnpm run gen-third-party-notices\``,
+      ).toBe(fontLicenseText(font))
+    }
   })
 })
 
@@ -292,15 +302,14 @@ describe('runtime distribution authorizations', () => {
     expect(isPermissive('SEE LICENSE IN README.md')).toBe(false)
   })
 
-  it('authorizes only Space Mono under the reviewed OFL declaration', () => {
-    expect(isOwnerAuthorizedRuntime(
-      SPACE_MONO_FONT_PACKAGE,
-      SPACE_MONO_FONT_LICENSE,
-    )).toBe(true)
-    expect(isOwnerAuthorizedRuntime(SPACE_MONO_FONT_PACKAGE, 'future terms')).toBe(false)
-    expect(isOwnerAuthorizedRuntime('@fontsource/unrelated', SPACE_MONO_FONT_LICENSE)).toBe(false)
-    expect(isPermissive(SPACE_MONO_FONT_LICENSE)).toBe(false)
-    expect(spaceMonoLicenseText()).toContain('SIL OPEN FONT LICENSE Version 1.1')
+  it('authorizes only the reviewed fonts under their reviewed OFL declaration', () => {
+    for (const font of [SPACE_MONO, FUSION_PIXEL]) {
+      expect(isOwnerAuthorizedRuntime(font.package, font.license)).toBe(true)
+      expect(isOwnerAuthorizedRuntime(font.package, 'future terms')).toBe(false)
+      expect(fontLicenseText(font)).toContain('SIL OPEN FONT LICENSE Version 1.1')
+    }
+    expect(isOwnerAuthorizedRuntime('@fontsource/unrelated', SPACE_MONO.license)).toBe(false)
+    expect(isPermissive(SPACE_MONO.license)).toBe(false)
   })
 
   it('derives version-independent platform payloads from the official SDK manifest', () => {

@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-该包是仅限桌面端的官方 `@deepseek-ai/dsh` 受管运行时更新 Host provider。`RuntimeUpdaterGateway` 发布生成的 direct Remote：`runtimeUpdater/describe` 与 `runtimeUpdater/update`。除非 `DSH_DESKTOP=1`，否则 FUI bundle 会禁用该 provider；构造函数会重复检查这个标记，并要求 DSH 与 FUI 使用准确版本、兼容 DSH 范围是有效 semver、受管存储、覆盖层与 pnpm 路径为绝对路径、registry 使用 HTTPS 或回环地址。
+该包是仅限桌面端的官方 `@deepseek-ai/dsh` 受管运行时更新 Host provider。`RuntimeUpdaterGateway` 发布生成的 direct Remote：`runtimeUpdater/describe`、`runtimeUpdater/check`（只查询不安装）与 `runtimeUpdater/update`。除非 `DSH_DESKTOP=1`，否则 FUI bundle 会禁用该 provider；构造函数会重复检查这个标记，并要求 DSH 与 FUI 使用准确版本、兼容 DSH 范围是有效 semver、受管存储、覆盖层与 pnpm 路径为绝对路径、registry 使用 HTTPS 或回环地址。
 
 一次更新请求会检查配置的 npm dist-tag，并且只在新版本落入当前桌面版本声明的兼容范围时安装官方 DSH。provider 会在 `$DSH_HOME/desktop-runtime` 下写入私有临时项目，通过 `ctx.subprocess` 调用应用内置的 pnpm 入口，以 hoisted linker 安装官方依赖闭包，再把应用资源中不可变的 FUI 包和 Web 前端复制到该闭包。官方 DSH 选择共用包版本，FUI 表面与更新器则保持桌面应用的准确版本。输出和执行时间都有上限，请求取消与 plugin 卸载共用同一生命周期；命令以 argv 数组执行，不经过 shell，并使用 subprocess provider 清除凭据后的环境变量。
 

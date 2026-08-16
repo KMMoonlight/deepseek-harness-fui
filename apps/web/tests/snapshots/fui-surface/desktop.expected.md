@@ -1,6 +1,6 @@
 - link "Skip to main content":
   - /url: "#dsh-main-content"
-- banner: DSH // Agent console Session link Standby
+- banner: DSH // Agent console
 - button "New session"
 - button "Collapse sidebar":
   - img

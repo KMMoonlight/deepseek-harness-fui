@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-16-fui-status-rail-hosts-stats.md
+2026-08-16-fui-status-rail-hosts-stats.md: fc49d59cb32d322902d1d5a113c3e8915e66d58e
+2026-08-16-fui-status-rail-hosts-stats.zh.md: cc683ac9faf8dfb5afb799d8b2e8da52fe59e7d4

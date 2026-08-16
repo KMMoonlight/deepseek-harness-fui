@@ -190,6 +190,7 @@ describe('RuntimeUpdaterGateway', () => {
     expect(updater.typertRemote).toMatchObject({ serviceKey: 'runtimeUpdater', namespace: 'runtimeUpdater' })
     expect(remoteMethods(updater)).toEqual([
       { method: 'describe', invocation: { kind: 'direct' } },
+      { method: 'check', invocation: { kind: 'direct' } },
       { method: 'update', invocation: { kind: 'direct' } },
     ])
     await expect(updater.describe({}, new AbortController().signal)).resolves.toEqual({
@@ -200,6 +201,31 @@ describe('RuntimeUpdaterGateway', () => {
       source: 'managed',
       distTag: 'next',
     })
+  })
+
+  it('checks the configured tag without installing', async () => {
+    const { updater, subprocess } = await harness()
+    updater.internals.fetch = vi.fn().mockResolvedValueOnce(manifest('1.1.0'))
+    await expect(updater.check({}, new AbortController().signal)).resolves.toEqual({
+      ok: true,
+      value: { currentVersion: '1.0.0', latestVersion: '1.1.0', updateAvailable: true, compatible: true },
+    })
+    updater.internals.fetch = vi.fn().mockResolvedValueOnce(manifest('1.0.0'))
+    await expect(updater.check({}, new AbortController().signal)).resolves.toEqual({
+      ok: true,
+      value: { currentVersion: '1.0.0', latestVersion: '1.0.0', updateAvailable: false, compatible: true },
+    })
+    updater.internals.fetch = vi.fn().mockResolvedValueOnce(manifest('2.0.0'))
+    await expect(updater.check({}, new AbortController().signal)).resolves.toEqual({
+      ok: true,
+      value: { currentVersion: '1.0.0', latestVersion: '2.0.0', updateAvailable: true, compatible: false },
+    })
+    updater.internals.fetch = vi.fn().mockResolvedValueOnce(new Response('no', { status: 503 }))
+    await expect(updater.check({}, new AbortController().signal)).resolves.toMatchObject({
+      ok: false,
+      error: { code: 'check-failed' },
+    })
+    expect(subprocess.specs).toHaveLength(0)
   })
 
   it('reports up-to-date and rejects an official release outside the desktop compatibility range', async () => {

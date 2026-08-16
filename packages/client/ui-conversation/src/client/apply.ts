@@ -8,6 +8,7 @@ import {
 // goes through the service, never a value import (client bundle purity gate).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type {} from '@deepseek-ai/dsh-client-ui-fui-layout/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { ViewTab } from './contract/views.ts'
@@ -427,6 +428,10 @@ export function apply(ctx: Context): void {
 
   // Session stats stick with the composer (composer.dock = stats-line family).
   slots.register({ name: 'conversation.composer.dock', id: 'stats', order: 0, locale: NS }, StatsLine)
+  // The FUI shell moves the same readout to its status rail: 'shell.status' is
+  // declared only by ui-fui-layout, so this contribution never installs in the
+  // stock assembly, and the FUI surface hides the dock instance via CSS.
+  slots.inject('shell.status', () => slots.register({ name: 'shell.status', id: 'stats', order: 0, locale: NS }, StatsLine))
 
   // Class-plugin mount (packages/AGENTS.md service form): the service
   // registers itself as `conversation` and lives on its own child fiber.

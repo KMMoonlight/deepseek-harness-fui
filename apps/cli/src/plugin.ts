@@ -6,13 +6,19 @@
  * resolving to a package that declares `dsh.bundle` joins the layer stack; a
  * removed or bundle-less dependency leaves it). Reconciling by installed
  * state, not by dependency diff, means `update` activates a package that
- * gained its `dsh.bundle` declaration in a newer version.
+ * gained its `dsh.bundle` declaration in a newer version. A failed attempt
+ * whose output names build scripts pnpm ≥11 refused to run is retried after
+ * merging those keys into the profile's `allowBuilds` — submitting the
+ * install is already the user's trust decision, so the package manager's
+ * per-package allowlist must not re-block it; only genuine failures
+ * (resolution, compatibility, network) surface as errors.
  * @module @deepseek-ai/dsh/plugin
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, resolve } from 'node:path'
+import { dump, load } from 'js-yaml'
 import {
   DEFAULT_PROFILE_BUNDLES,
   initProfile,
@@ -111,8 +117,78 @@ function anchorPathSpec(argument: string, cwd: string): string {
   return `${prefix}${resolve(cwd, match.groups.path)}`
 }
 
+/** One captured pnpm invocation: the exit code plus everything pnpm printed. */
+interface PnpmAttempt {
+  readonly exitCode: number
+  readonly output: string
+}
+
 /**
- * Run one `dsh plugin` invocation: init if needed, forward to pnpm, reconcile.
+ * Build-script keys pnpm ≥11 refused to run, parsed from one failed attempt's
+ * output. pnpm reports two shapes: ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED prints
+ * an example `allowBuilds:` block naming the git package by its resolved
+ * tarball URL, and ERR_PNPM_IGNORED_BUILDS lists registry packages as a
+ * comma-separated `name@version` line.
+ * @param output - combined stdout and stderr of one pnpm run.
+ * @returns candidate `allowBuilds` keys, deduplicated in first-seen order.
+ */
+function blockedBuildKeys(output: string): string[] {
+  const keys: string[] = []
+  const lines = output.split('\n')
+  for (const [index, line] of lines.entries()) {
+    if (line.trim() !== 'allowBuilds:') continue
+    for (const entry of lines.slice(index + 1)) {
+      const key = /^ {2}(?<key>\S.*?): true\s*$/.exec(entry)?.groups?.key
+      if (key === undefined) break
+      keys.push(key)
+    }
+  }
+  const ignored = /Ignored build scripts: (?<list>[^\n]+)/.exec(output)?.groups?.list
+  for (const entry of ignored?.split(/,\s*/) ?? []) {
+    const key = entry.trim().replace(/\.$/, '')
+    if (key !== '') keys.push(key)
+  }
+  return [...new Set(keys)]
+}
+
+/**
+ * Merge keys into the profile's `allowBuilds` settings, preserving unrelated
+ * pnpm-workspace.yaml settings. Also approves pnpm's own pending entries: on
+ * ERR_PNPM_IGNORED_BUILDS pnpm records each blocked package as the placeholder
+ * `<name>: set this to true or false`, and only that exact marker is flipped —
+ * a user's explicit `false` stays `false`.
+ * @param dir - the profile directory.
+ * @param keys - candidate keys from {@link blockedBuildKeys}.
+ * @returns the keys newly approved; empty when nothing changed.
+ */
+function allowBuilds(dir: string, keys: readonly string[]): string[] {
+  const path = join(dir, 'pnpm-workspace.yaml')
+  const parsed: unknown = load(readFileSync(path, 'utf8'))
+  const settings = (typeof parsed === 'object' && parsed !== null ? parsed : {}) as Record<string, unknown>
+  const allowed = (
+    typeof settings.allowBuilds === 'object' && settings.allowBuilds !== null ? settings.allowBuilds : {}
+  ) as Record<string, unknown>
+  const changed: string[] = []
+  for (const [key, value] of Object.entries(allowed)) {
+    if (value === 'set this to true or false') {
+      allowed[key] = true
+      changed.push(key)
+    }
+  }
+  for (const key of keys) {
+    if (key in allowed) continue
+    allowed[key] = true
+    changed.push(key)
+  }
+  if (changed.length === 0) return []
+  settings.allowBuilds = allowed
+  writeFileSync(path, dump(settings))
+  return changed
+}
+/**
+ * Run one `dsh plugin` invocation: init if needed, forward to pnpm (retrying
+ * past its build-script allowlist, since the explicit install command is
+ * itself the user's trust decision), then reconcile.
  * @param profile - the profile name.
  * @param args - pnpm arguments with relative path specs anchored to the invoking directory.
  * @returns the pnpm exit code.
@@ -138,31 +214,49 @@ export function runPlugin(profile: string, args: readonly string[]): number {
   // spawn() refuses without a shell since the CVE-2024-27980 hardening. A
   // packaged desktop uses its Electron executable in Node mode and therefore
   // bypasses the shim.
-  const result = spawnSync(command, commandArgs, {
-    cwd: dir,
-    stdio: 'inherit',
-    shell: pnpmEntry === undefined && process.platform === 'win32',
-  })
-  if (result.error !== undefined) {
-    const code = (result.error as NodeJS.ErrnoException).code
-    if (code === 'ENOENT') {
-      process.stderr.write(`${NAME}: pnpm not found on PATH — install pnpm to manage profile plugins\n`)
-      return 127
+  const shell = pnpmEntry === undefined && process.platform === 'win32'
+  // Output is captured, then echoed, so one failed attempt can be scanned for
+  // allowlist blocks without losing pnpm's diagnostics for the caller.
+  const attempt = (): PnpmAttempt => {
+    const result = spawnSync(command, commandArgs, { cwd: dir, shell, maxBuffer: 64 * 1024 * 1024 })
+    if (result.error !== undefined) {
+      const code = (result.error as NodeJS.ErrnoException).code
+      if (code === 'ENOENT') {
+        process.stderr.write(`${NAME}: pnpm not found on PATH — install pnpm to manage profile plugins\n`)
+        return { exitCode: 127, output: '' }
+      }
+      throw result.error
     }
-    throw result.error
+    const stdout = result.stdout.toString()
+    const stderr = result.stderr.toString()
+    if (stdout !== '') process.stdout.write(stdout)
+    if (stderr !== '') process.stderr.write(stderr)
+    return { exitCode: result.status ?? 1, output: `${stdout}\n${stderr}` }
   }
-  const exitCode = result.status ?? 1
+  // pnpm ≥11 hard-fails on build scripts outside its allowBuilds list — a git
+  // plugin's prepare script first, then native transitive dependencies. Each
+  // round allows the keys pnpm just named and retries; a round that adds
+  // nothing is a genuine failure, not an allowlist block.
+  let current = attempt()
+  for (let rounds = 0; current.exitCode !== 0 && rounds < 3; rounds++) {
+    const added = allowBuilds(dir, blockedBuildKeys(current.output))
+    if (added.length === 0) break
+    process.stderr.write(
+      `${NAME}: allowed build scripts in ${join(dir, 'pnpm-workspace.yaml')}: ${added.join(', ')} — retrying\n`,
+    )
+    current = attempt()
+  }
+  const exitCode = current.exitCode
   if (exitCode === 0) {
     reconcilePlugins(before, dir)
   } else {
     // pnpm's own diagnostics name pnpm-workspace.yaml without saying WHICH
-    // one; the profile owns it, and the commonest failure here is pnpm ≥10
-    // blocking a git dependency's prepare (build) script until allowlisted.
+    // one; the profile owns it.
     process.stderr.write(`${NAME}: pnpm failed in profile directory ${dir}\n`)
-    if (args.some(argument => /^git\+|^github:|\.git(?:#|$)/.test(argument))) {
+    if (args.some(argument => /^git\+|^github:|\.git(?:#|$)|^https?:\/\/(?:www\.)?github\.com\/[\w.-]+\/[\w.-]+/.test(argument))) {
       process.stderr.write(
-        `${NAME}: git-hosted plugins build on install via their prepare script, which pnpm blocks until allowed — `
-        + `add the exact key pnpm printed above under allowBuilds in ${join(dir, 'pnpm-workspace.yaml')}, then re-run\n`,
+        `${NAME}: if pnpm blocked the git plugin's prepare script above, `
+        + `add the exact key it printed under allowBuilds in ${join(dir, 'pnpm-workspace.yaml')}, then re-run\n`,
       )
     }
   }

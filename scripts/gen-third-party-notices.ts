@@ -16,7 +16,6 @@ import parseSpdx from 'spdx-expression-parse'
 
 const root = resolve(import.meta.dirname, '..')
 const OUT = 'THIRD_PARTY_NOTICES.md'
-export const SPACE_MONO_LICENSE_OUT = 'apps/web/public/licenses/space-mono-OFL-1.1.txt'
 
 /** Dependency-declaration kinds a consumer resolves at runtime. */
 const RUNTIME_KINDS = ['dependencies', 'optionalDependencies'] as const
@@ -51,22 +50,56 @@ const FIRST_PARTY = new Set([
 export const CLAUDE_AGENT_SDK_PACKAGE = '@anthropic-ai/claude-agent-sdk'
 const CLAUDE_PLATFORM_PACKAGE_PREFIX = `${CLAUDE_AGENT_SDK_PACKAGE}-`
 const CLAUDE_PLATFORM_DECLARED_LICENSE = 'SEE LICENSE IN LICENSE.md'
-export const SPACE_MONO_FONT_PACKAGE = '@fontsource/space-mono'
-export const SPACE_MONO_FONT_LICENSE = 'OFL-1.1'
-const SPACE_MONO_LICENSE_SOURCE = `apps/web/node_modules/${SPACE_MONO_FONT_PACKAGE}/LICENSE`
+
+/**
+ * One font package whose distribution the project owner has reviewed. OFL-1.1
+ * is a font license, not a permissive software license, so every entry is an
+ * exact identity plus license combination — adding a font means reviewing its
+ * terms and recording them here.
+ */
+export interface ReviewedFont {
+  /** Exact npm package identity. */
+  readonly package: string
+  /** Upstream license declaration the review covers. */
+  readonly license: string
+  /** Font family name used in the notices sentence. */
+  readonly display: string
+  /** Copyright line the installed LICENSE must keep starting with. */
+  readonly copyright: string
+  /** Committed license copy the Web build ships beside the font files. */
+  readonly licenseOut: string
+}
+
+/** Font software bundled into the Web frontend served to browser clients and the desktop shell. */
+export const REVIEWED_FONTS: readonly ReviewedFont[] = [
+  {
+    package: '@fontsource/space-mono',
+    license: 'OFL-1.1',
+    display: 'Space Mono',
+    copyright: 'Copyright 2016 The Space Mono Project Authors',
+    licenseOut: 'apps/web/public/licenses/space-mono-OFL-1.1.txt',
+  },
+  {
+    package: '@fontsource/fusion-pixel-12px-monospaced-sc',
+    license: 'OFL-1.1',
+    display: 'Fusion Pixel',
+    copyright: 'Copyright (c) 2022, TakWolf',
+    licenseOut: 'apps/web/public/licenses/fusion-pixel-OFL-1.1.txt',
+  },
+]
 
 /**
  * Whether a non-permissive runtime declaration has an exact owner
  * authorization. This does not reclassify its terms as permissive. Claude's
- * authorization follows its exact package identity; Space Mono additionally
- * requires the reviewed OFL-1.1 declaration.
+ * authorization follows its exact package identity; a reviewed font
+ * additionally requires its reviewed license declaration.
  * @param name - exact npm package identity.
  * @param license - upstream license declaration.
  * @returns true only for an authorized identity and license combination.
  */
 export function isOwnerAuthorizedRuntime(name: string, license: string): boolean {
   return name === CLAUDE_AGENT_SDK_PACKAGE
-    || (name === SPACE_MONO_FONT_PACKAGE && license === SPACE_MONO_FONT_LICENSE)
+    || REVIEWED_FONTS.some(font => font.package === name && font.license === license)
 }
 
 /**
@@ -298,24 +331,33 @@ function installedManifest(name: string): VirtualManifest | undefined {
 }
 
 /**
- * Read the complete reviewed Space Mono copyright and OFL-1.1 text that the
- * Web distribution copies beside the font files used by browser and desktop.
+ * Read the complete reviewed copyright and license text that the Web
+ * distribution copies beside the font files used by browser and desktop.
+ * Line endings normalize to LF and each line drops trailing whitespace: the
+ * repository's canonical text form (.gitattributes, `git diff --check`), so
+ * the committed asset matches on every host and passes the whitespace gate.
+ * @param font - the reviewed font whose installed LICENSE to verify and read.
  * @returns the installed package's license text with one trailing newline.
  */
-export function spaceMonoLicenseText(): string {
-  const source = resolve(root, SPACE_MONO_LICENSE_SOURCE)
+export function fontLicenseText(font: ReviewedFont): string {
+  const sourcePath = `apps/web/node_modules/${font.package}/LICENSE`
+  const source = resolve(root, sourcePath)
   if (!existsSync(source)) {
     throw new Error(
-      `gen-third-party-notices: cannot resolve ${SPACE_MONO_LICENSE_SOURCE}; run \`pnpm install\`.`,
+      `gen-third-party-notices: cannot resolve ${sourcePath}; run \`pnpm install\`.`,
     )
   }
-  const text = readFileSync(source, 'utf8').trimEnd()
-  if (
-    !text.startsWith('Copyright 2016 The Space Mono Project Authors')
-    || !text.includes('SIL OPEN FONT LICENSE Version 1.1')
-  ) {
+  const text = readFileSync(source, 'utf8')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map(line => line.trimEnd())
+    .join('\n')
+    .trimEnd()
+  const oflIntact = font.license !== 'OFL-1.1' || text.includes('SIL OPEN FONT LICENSE Version 1.1')
+  if (!text.startsWith(font.copyright) || !oflIntact) {
     throw new Error(
-      `gen-third-party-notices: ${SPACE_MONO_FONT_PACKAGE} no longer carries the reviewed Space Mono copyright and OFL-1.1 text.`,
+      `gen-third-party-notices: ${font.package} no longer carries the reviewed ${font.display} copyright and ${font.license} text.`,
     )
   }
   return `${text}\n`
@@ -689,12 +731,15 @@ ${rows.join('\n')}
 }
 
 /** Render the disclosure for font bytes in the Web frontend used by both clients. */
-function renderSpaceMonoDistribution(present: boolean): string {
-  if (!present) return ''
+function renderFontDistribution(fonts: readonly ReviewedFont[]): string {
+  if (fonts.length === 0) return ''
+  const paragraphs = fonts.map(font =>
+    `The Web frontend used by browser clients and the desktop shell bundles the published ${font.display} web-font files from \`${font.package}\` under ${font.license}. The build preserves the font bytes and ships their copyright notice and complete license at [\`${font.licenseOut}\`](${font.licenseOut}).`,
+  )
   return `
 ## Bundled font software
 
-The Web frontend used by browser clients and the desktop shell bundles the published Space Mono web-font files from \`${SPACE_MONO_FONT_PACKAGE}\` under ${SPACE_MONO_FONT_LICENSE}. The build preserves the font bytes and ships their copyright notice and complete license at [\`${SPACE_MONO_LICENSE_OUT}\`](${SPACE_MONO_LICENSE_OUT}).
+${paragraphs.join('\n\n')}
 `
 }
 
@@ -715,10 +760,10 @@ export function render(): string {
   )
     ? collectClaudeDistribution()
     : undefined
-  const distributesSpaceMono = runtimeDeps.some(
-    dep => dep.name === SPACE_MONO_FONT_PACKAGE,
+  const distributedFonts = REVIEWED_FONTS.filter(font =>
+    runtimeDeps.some(dep => dep.name === font.package),
   )
-  if (distributesSpaceMono) spaceMonoLicenseText()
+  for (const font of distributedFonts) fontLicenseText(font)
 
   const nonPermissiveDev = devDeps.filter(dep => !isPermissive(dep.license))
   // Non-permissive terms reaching a shipped artifact need an exact owner
@@ -761,7 +806,7 @@ pnpm applies local patches to the following packages at install time, so shipped
 
 ${patchedLines.join('\n')}
 ${renderClaudeDistribution(claudeDistribution)}
-${renderSpaceMonoDistribution(distributesSpaceMono)}
+${renderFontDistribution(distributedFonts)}
 
 ## Development-only npm dependencies
 
@@ -795,36 +840,35 @@ ${BUILD_TIME_TOOLS.map(tool => `| [\`${tool.name}\`](${tool.repo}) | ${tool.lice
  * tests neither regenerates the committed file nor calls process.exit. */
 function main(): void {
   const content = render()
-  const spaceMonoLicense = spaceMonoLicenseText()
+  const fontLicenses = REVIEWED_FONTS.map(font => ({ out: font.licenseOut, text: fontLicenseText(font) }))
+  const assetNames = fontLicenses.map(asset => asset.out).join(', ')
   if (process.argv.includes('--check')) {
-    let committed: string | null = null
-    let committedSpaceMonoLicense: string | null = null
-    try {
-      committed = readFileSync(resolve(root, OUT), 'utf8')
-    } catch {
-      // Only ENOENT (not yet generated) is expected; a present-but-unreadable
-      // file is not a state this repo produces, and the remedy is the same.
-      committed = null
+    const readCommitted = (name: string): string | null => {
+      try {
+        return readFileSync(resolve(root, name), 'utf8')
+      } catch {
+        // Only ENOENT (not yet generated) is expected; a present-but-unreadable
+        // file is not a state this repo produces, and the remedy is the same.
+        return null
+      }
     }
-    try {
-      committedSpaceMonoLicense = readFileSync(resolve(root, SPACE_MONO_LICENSE_OUT), 'utf8')
-    } catch {
-      // The generated asset follows the same missing-or-unreadable remedy.
-      committedSpaceMonoLicense = null
-    }
-    if (committed === content && committedSpaceMonoLicense === spaceMonoLicense) {
-      console.log(`gen-third-party-notices: ${OUT} and ${SPACE_MONO_LICENSE_OUT} are up to date.`)
+    const stale = readCommitted(OUT) !== content
+      || fontLicenses.some(asset => readCommitted(asset.out) !== asset.text)
+    if (!stale) {
+      console.log(`gen-third-party-notices: ${OUT} and ${assetNames} are up to date.`)
       process.exit(0)
     }
-    console.error(`gen-third-party-notices: generated notices are stale. Run \`pnpm run gen-third-party-notices\` and commit ${OUT} and ${SPACE_MONO_LICENSE_OUT}.`)
+    console.error(`gen-third-party-notices: generated notices are stale. Run \`pnpm run gen-third-party-notices\` and commit ${OUT} and ${assetNames}.`)
     process.exit(1)
   }
 
   writeFileSync(resolve(root, OUT), content)
-  const licenseOut = resolve(root, SPACE_MONO_LICENSE_OUT)
-  mkdirSync(dirname(licenseOut), { recursive: true })
-  writeFileSync(licenseOut, spaceMonoLicense)
-  console.log(`gen-third-party-notices: wrote ${OUT} and ${SPACE_MONO_LICENSE_OUT}.`)
+  for (const asset of fontLicenses) {
+    const licenseOut = resolve(root, asset.out)
+    mkdirSync(dirname(licenseOut), { recursive: true })
+    writeFileSync(licenseOut, asset.text)
+  }
+  console.log(`gen-third-party-notices: wrote ${OUT} and ${assetNames}.`)
 }
 
 // Run only when invoked as a script, not when imported by a test.

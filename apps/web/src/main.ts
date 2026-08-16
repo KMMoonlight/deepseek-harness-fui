@@ -6,6 +6,7 @@
 import { AppWebEntry } from '@deepseek-ai/dsh-client-web'
 import '@fontsource/space-mono/400.css'
 import '@fontsource/space-mono/700.css'
+import '@fontsource/fusion-pixel-12px-monospaced-sc/400.css'
 import './fui.css'
 
 const el = document.getElementById('root')

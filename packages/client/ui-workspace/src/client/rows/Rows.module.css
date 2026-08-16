@@ -322,6 +322,21 @@
   color: #ADB2B8;
 }
 
+/* FUI: the card plate sets the pixel font (HoverCard.module.css); here only
+   the stock dark-card greys move to FUI text tokens. */
+:global(body[data-fui-surface]) .hoverTitle {
+  color: var(--fui-text);
+}
+
+:global(body[data-fui-surface]) .hoverPath,
+:global(body[data-fui-surface]) .hoverTime {
+  color: var(--fui-text-dim);
+}
+
+:global(body[data-fui-surface]) .hoverStatus {
+  color: var(--fui-text-muted);
+}
+
 .iconButton {
   flex: none;
   display: inline-flex;

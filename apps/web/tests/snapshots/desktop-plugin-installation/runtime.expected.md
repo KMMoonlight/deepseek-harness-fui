@@ -13,36 +13,19 @@
     - button "Agent presets":
       - img
       - text: Agent presets
+    - button "Updates":
+      - img
+      - text: Updates
   - button "Open configuration file"
   - button "Close":
     - img
     - text: Close
-  - text: Agent preset Applies to sessions you start from now on. Running sessions keep the preset they began with.
-  - button "Standard mode":
-    - text: Standard mode
-    - img
-  - text: Permission Choose the default permission mode for new sessions
-  - button "Workspace Write":
-    - text: Workspace Write
-    - img
-  - text: Language
-  - button "English":
-    - text: English
-    - img
-  - text: Enter behavior while busy Busy only; Cmd/Ctrl+Enter uses the other behavior
-  - button "Queue":
-    - text: Queue
-    - img
-  - heading "Desktop runtime" [level=3]
+  - heading "Runtime updates" [level=2]
   - paragraph: Check npm for official DSH updates and install versions supported by this desktop release.
-  - button "Check and update"
   - term: Current version
   - definition:
     - code: 0.1.0-rc.5
     - text: Bundled with app
-  - term: Desktop FUI version
-  - definition:
-    - code: 0.1.0-rc.5
-  - term: Compatible official DSH
-  - definition:
-    - code: ">=0.1.0-rc.5 <0.2.0"
+  - term: Latest version
+  - definition: Not checked
+  - button "Check for updates"

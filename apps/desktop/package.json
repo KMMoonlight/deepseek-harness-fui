@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tests/tsconfig.json",
     "dev": "pnpm --workspace-root run build && electron .",
     "stage-runtime": "node --import tsx scripts/stage-runtime.ts",
+    "build:icons": "node --import tsx scripts/build-icons.ts",
     "package": "pnpm --workspace-root run build && pnpm run stage-runtime && electron-builder --dir",
     "dist": "pnpm --workspace-root run build && pnpm run stage-runtime && electron-builder"
   },
@@ -25,6 +26,7 @@
     "@types/node": "^22.20.0",
     "electron": "43.4.0",
     "electron-builder": "26.15.3",
+    "playwright": "^1.49.0",
     "tsdown": "^0.22.2",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
@@ -41,8 +43,11 @@
     ],
     "extraResources": [
       {
-        "from": "resources/icon.png",
-        "to": "desktop-resources/icon.png"
+        "from": "resources",
+        "to": "desktop-resources",
+        "filter": [
+          "**/*.png"
+        ]
       },
       {
         "from": "runtime-host/package.json",

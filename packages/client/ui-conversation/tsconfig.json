@@ -69,6 +69,9 @@
       "path": "../ui-layout"
     },
     {
+      "path": "../ui-fui-layout"
+    },
+    {
       "path": "../locale"
     },
     {

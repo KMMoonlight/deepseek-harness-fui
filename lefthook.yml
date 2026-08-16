@@ -29,7 +29,7 @@ pre-commit:
     # falls through to the freshness assertion in the test lane.
     - name: third-party notices (staged)
       glob: '{package.json,*/package.json,*/*/package.json,*/*/*/package.json,*/*/*/*/package.json,pnpm-workspace.yaml,*/*/pnpm-workspace.yaml,pnpm-lock.yaml,vendor/README.md,python/*/pyproject.toml,scripts/gen-third-party-notices.ts,scripts/build-exe-for-python-sdk.ts}'
-      run: node_modules/.bin/tsx scripts/gen-third-party-notices.ts && git add THIRD_PARTY_NOTICES.md apps/web/public/licenses/space-mono-OFL-1.1.txt
+      run: node_modules/.bin/tsx scripts/gen-third-party-notices.ts && git add THIRD_PARTY_NOTICES.md apps/web/public/licenses/
 
     - name: whitespace (staged)
       run: git --no-pager diff --cached --check

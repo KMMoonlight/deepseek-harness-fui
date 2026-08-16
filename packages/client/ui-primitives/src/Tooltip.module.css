@@ -47,3 +47,16 @@
     animation: none;
   }
 }
+
+/* FUI chrome: the bubble is fixed-positioned under a portaled tree, so the
+   pixel font and panel colors are set explicitly (same plate as HoverCard). */
+:global(body[data-fui-surface]) .bubble {
+  padding: 4px 8px;
+  border: 1px solid var(--fui-line-strong);
+  border-radius: 0;
+  background: var(--fui-panel-solid);
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--fui-bg) 78%, transparent);
+  color: var(--fui-text);
+  font-family: var(--fui-font);
+  font-size: 11px;
+}

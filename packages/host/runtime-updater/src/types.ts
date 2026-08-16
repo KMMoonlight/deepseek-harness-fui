@@ -31,6 +31,29 @@ export interface RuntimeUpdateRequest {
   readonly request?: never
 }
 
+/** Empty request for a check-only release query. */
+export interface RuntimeUpdateCheckRequest {
+  /** Marker field: the request intentionally carries no renderer-controlled input. */
+  readonly request?: never
+}
+
+/** What the configured npm tag currently offers, reported without installing. */
+export interface RuntimeUpdateCheckValue {
+  /** Version serving the current renderer and Host. */
+  readonly currentVersion: string
+  /** Version the configured dist-tag currently names. */
+  readonly latestVersion: string
+  /** Whether latestVersion is strictly newer than currentVersion. */
+  readonly updateAvailable: boolean
+  /** Whether latestVersion satisfies this desktop's compatible DSH range. */
+  readonly compatible: boolean
+}
+
+/** Check-only outcome or a stable business failure. */
+export type RuntimeUpdateCheckResult =
+  | { readonly ok: true; readonly value: RuntimeUpdateCheckValue }
+  | { readonly ok: false; readonly error: RuntimeUpdateFailure }
+
 /** Successful one-click update result. */
 export type RuntimeUpdateValue =
   | {

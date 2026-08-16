@@ -137,13 +137,36 @@ function assertHostArtifacts(paths: HostPaths): void {
   }
 }
 
+/** Resolve one staged resource image, tolerating incomplete staging. */
+function resourcePath(name: string): string | undefined {
+  const candidates = app.isPackaged
+    ? [join(process.resourcesPath, 'desktop-resources', name)]
+    : [join(DESKTOP_DIR, 'resources', name)]
+  return candidates.find(candidate => existsSync(candidate))
+}
+
 /** Load the application icon, with an empty fallback for incomplete staging. */
 function applicationImage(): Electron.NativeImage {
-  const candidates = app.isPackaged
-    ? [join(process.resourcesPath, 'desktop-resources/icon.png')]
-    : [join(DESKTOP_DIR, 'resources/icon.png')]
-  const path = candidates.find(candidate => existsSync(candidate))
+  const path = resourcePath('icon.png')
   return path === undefined ? nativeImage.createEmpty() : nativeImage.createFromPath(path)
+}
+
+/**
+ * Load the tray glyph: the black template silhouette on macOS (the system
+ * inverts it for light/dark menu bars), the FUI-green mark elsewhere. The @2x
+ * file joins as the retina representation so the glyph stays crisp.
+ */
+function trayImage(): Electron.NativeImage {
+  const name = process.platform === 'darwin' ? 'tray-iconTemplate.png' : 'tray-icon.png'
+  const path = resourcePath(name)
+  if (path === undefined) return nativeImage.createEmpty()
+  const image = nativeImage.createFromPath(path)
+  const retina = resourcePath(name.replace('.png', '@2x.png'))
+  if (retina !== undefined) {
+    image.addRepresentation({ scaleFactor: 2, width: 18, height: 18, buffer: readFileSync(retina) })
+  }
+  if (process.platform === 'darwin') image.setTemplateImage(true)
+  return image
 }
 
 function isExternalUrl(raw: string): boolean {
@@ -223,9 +246,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
 }
 
 function createTray(): void {
-  const image = applicationImage().resize({ width: 18, height: 18 })
-  if (process.platform === 'darwin') image.setTemplateImage(true)
-  tray = new Tray(image)
+  tray = new Tray(trayImage())
   tray.setToolTip(APP_NAME)
   const template: MenuItemConstructorOptions[] = [
     { label: '打开主窗口', click: () => { void lifecycle?.showWindow() } },
@@ -256,6 +277,9 @@ function requestAppQuit(): Promise<void> {
 
 async function boot(): Promise<void> {
   if (bootQuitPromise !== undefined) return
+  // Dev runs (`electron .`) carry Electron's own Dock icon; the packaged icon
+  // only applies to built artifacts, so point the Dock at our artwork here.
+  if (process.platform === 'darwin') app.dock?.setIcon(applicationImage())
   const candidates = await hostCandidates()
   const failures: unknown[] = []
   for (const paths of candidates) {

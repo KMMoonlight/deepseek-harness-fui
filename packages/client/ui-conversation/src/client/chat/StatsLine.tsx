@@ -1,6 +1,8 @@
 // Settled-node identity prevents stream-delta updates from rerendering this row.
 // Mounted on 'conversation.composer.dock' so it sticks with the composer in the
-// active conversation scrollport (see ConversationRoot data-conversation-scroll).
+// active conversation scrollport (see ConversationRoot data-conversation-scroll),
+// and on the FUI shell's 'shell.status' seat, where it wears the status rail's
+// chrome and the dock instance hides (StatsLine.module.css).
 
 import { Fragment, memo, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'

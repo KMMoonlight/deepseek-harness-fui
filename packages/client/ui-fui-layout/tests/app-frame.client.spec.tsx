@@ -150,7 +150,6 @@ describe('AppFrame', () => {
     expect(tracks(frame)).toEqual([280, 0])
     expect(getByRole('link', { name: '跳至主要内容' }).getAttribute('href')).toBe('#dsh-main-content')
     expect(getByText('智能体控制台')).toBeTruthy()
-    expect(getByText('就绪')).toBeTruthy()
     expect(getByText('DEEPSEEK HARNESS')).toBeTruthy()
   })
 
@@ -164,6 +163,9 @@ describe('AppFrame', () => {
     expect(keys).not.toContain('conversation.empty')
     expect(slotCalls.find(c => c.key === 'conversation')!.props).toEqual({})
     expect(slotCalls.find(c => c.key === 'details')!.props).toEqual({})
+    // The status rail hosts the session readout seat (ui-conversation's stats
+    // line installs there only in the FUI assembly).
+    expect(slotCalls.find(c => c.key === 'shell.status')!.props).toEqual({})
   })
 
   it('keeps the conversation slot mounted while no session is current', () => {
