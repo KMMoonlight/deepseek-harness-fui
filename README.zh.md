@@ -10,6 +10,12 @@ DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的�
 
 DeepSeek Harness 目前处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
 
+## 截图
+
+![DeepSeek Harness 桌面应用 —— 会话界面](assets/screen-1.png)
+
+![DeepSeek Harness 桌面应用 —— 设置](assets/screen-2.png)
+
 ## 运行
 
 ### 通过 `npm` 运行

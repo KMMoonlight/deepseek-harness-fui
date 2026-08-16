@@ -19,12 +19,13 @@ interface Manifest {
   readonly dependencies?: Readonly<Record<string, string>>
 }
 
-async function run(command: string, args: readonly string[]): Promise<void> {
+async function run(command: string, args: readonly string[], options?: { readonly shell?: boolean }): Promise<void> {
   await new Promise<void>((accept, reject) => {
     const child = spawn(command, args, {
       cwd: repositoryRoot,
       env: { ...process.env, CI: 'true' },
       stdio: 'inherit',
+      shell: options?.shell ?? false,
     })
     child.once('error', reject)
     child.once('exit', (code, signal) => {
@@ -92,7 +93,10 @@ async function restoreLegacyHoists(): Promise<void> {
 async function deploy(): Promise<void> {
   const savedWorkspaceState = existsSync(workspaceState) ? await readFile(workspaceState) : undefined
   try {
-    await run(process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm', [
+    // Node refuses to spawn .cmd shims without a shell (batched-file execution
+    // hardening), so Windows goes through cmd.exe here.
+    const win32 = process.platform === 'win32'
+    await run(win32 ? 'pnpm.cmd' : 'pnpm', [
       '--config.verify-deps-before-run=false',
       '--filter',
       deployPackage,
@@ -103,7 +107,7 @@ async function deploy(): Promise<void> {
       '--config.auto-install-peers=false',
       '--config.link-workspace-packages=true',
       staging,
-    ])
+    ], { shell: win32 })
   } finally {
     if (savedWorkspaceState === undefined) await rm(workspaceState, { force: true })
     else await writeFile(workspaceState, savedWorkspaceState)

@@ -10,6 +10,12 @@ It uses an architecture where **everything is a plugin**, and is powered by [Cor
 
 DeepSeek Harness is currently in _developer preview_ and is iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
 
+## Screenshots
+
+![DeepSeek Harness desktop app — session view](assets/screen-1.png)
+
+![DeepSeek Harness desktop app — settings](assets/screen-2.png)
+
 ## Run
 
 ### Run from `npm`
