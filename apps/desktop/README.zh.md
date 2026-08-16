@@ -34,7 +34,7 @@ pnpm run dist:desktop
 
 ## 插件与用户数据
 
-应用启动的是 `~/.dsh/profiles/fui` 下的普通可写 `fui` profile。如果已选中经过校验的受管运行时，内置 bundle 从中加载；否则使用不可变的打包运行时。第三方 profile bundle 及其 lockfile 留在用户 profile 中，因此运行时更新与应用升级都不会清除它们。
+应用启动的是 `~/.dsh/profiles/fui` 下的普通可写 `fui` profile。如果已选中经过校验的受管 DSH 运行时，官方 bundle 从中加载，而 FUI 表面与 Web 前端仍由已安装的桌面应用持有；没有受管选择时，则使用完整且不可变的打包运行时。第三方 profile bundle 及其 lockfile 留在用户 profile 中，因此运行时更新与应用升级都不会清除它们。
 
 打包 Host 通过 `DSH_PNPM_ENTRY` 获得内置 pnpm 入口。打开**设置 → 插件 → 安装插件**，输入一个 npm 包或 Git 规格，即可提交给仅限桌面端的安装器。Host 不经过 shell，也不依赖登录 shell，直接调用现有 profile 命令：
 
@@ -46,9 +46,11 @@ dsh plugin --profile fui add <package-or-git-spec>
 
 ## 运行时更新
 
-**设置 → 通用设置 → 桌面运行时**会显示当前 `@deepseek-ai/dsh` 版本。点击**检查并更新**后，应用会读取配置的 npm dist-tag，并自动把兼容的新运行时安装到 `$DSH_HOME/desktop-runtime`。它不会修改应用资源或全局 npm 安装。
+**设置 → 通用设置 → 桌面运行时**会显示当前官方 `@deepseek-ai/dsh` 版本、应用 FUI 版本和支持的 DSH 范围。点击**检查并更新**后，应用会读取配置的 npm dist-tag，并自动把兼容的新版官方 DSH 安装到 `$DSH_HOME/desktop-runtime`。因此 DSH 与桌面应用不需要同步发布。这个过程不会修改应用资源或全局 npm 安装。
 
-兼容性检查采用失败即拒绝：发布的根包必须声明 `@deepseek-ai/dsh-fui-app`；安装后的依赖树必须包含 FUI bundle 与 Web 前端；CLI 必须报告请求的版本。安装成功后，完全重启应用才会激活新版本。Electron 会在启动前再次校验受管依赖树；如果依赖树无效，或 Host 在就绪前失败，应用会保留相关数据用于诊断，并回退到内置运行时。没有 FUI bundle 的 npm 版本会报告不兼容，不会安装。
+更新器先安装官方 DSH 依赖闭包，再覆盖桌面应用自带的准确版本 FUI 包与 Web 资源。这样可以直接获得官方 CLI、Host 与 plugin 更新，同时不要求官方 DSH 发布这个 FUI。兼容性检查采用失败即拒绝：官方版本必须落入 `dshDesktop.compatibleDsh`，每个应用覆盖包必须与桌面 FUI 版本一致，CLI 也必须报告请求的版本。安装成功后，完全重启应用才会激活新版本。Electron 会在启动前再次校验受管依赖树；如果依赖树无效，或 Host 在就绪前失败，应用会保留相关数据用于诊断，并回退到内置运行时。
+
+官方的非破坏性版本只要落在声明范围内，就可以立即安装。如果官方 DSH 引入不兼容的 API、配置或组合变化，当前桌面版本会报告不兼容；FUI 项目随后适配并发布新版桌面应用，同时调整兼容范围。
 
 ## 已知限制
 

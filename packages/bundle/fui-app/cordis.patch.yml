@@ -25,6 +25,9 @@
       config:
         currentVersion: !!js process.env.DSH_DESKTOP_RUNTIME_VERSION
         currentSource: !!js process.env.DSH_DESKTOP_RUNTIME_SOURCE
+        fuiVersion: !!js process.env.DSH_DESKTOP_FUI_VERSION
+        compatibleDshRange: !!js process.env.DSH_DESKTOP_DSH_COMPATIBILITY
+        overlayRoot: !!js process.env.DSH_DESKTOP_OVERLAY_ROOT
         runtimeRoot: !!js process.env.DSH_DESKTOP_RUNTIME_ROOT
         pnpmEntry: !!js process.env.DSH_PNPM_ENTRY
         registryUrl: 'https://registry.npmjs.org'

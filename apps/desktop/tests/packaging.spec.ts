@@ -7,6 +7,7 @@ const repositoryRoot = resolve(desktopRoot, '../..')
 const desktopPackage = JSON.parse(readFileSync(resolve(desktopRoot, 'package.json'), 'utf8')) as {
   scripts: Record<string, string>
   build: { extraResources: Array<{ from: string; to: string }> }
+  dshDesktop: { compatibleDsh: string }
 }
 const runtimePackage = JSON.parse(readFileSync(resolve(desktopRoot, 'runtime/package.json'), 'utf8')) as {
   dependencies: Record<string, string>
@@ -27,6 +28,7 @@ describe('desktop packaging contract', () => {
   })
 
   it('ships the FUI bundle, CLI, frontend, and package manager in one runtime', () => {
+    expect(desktopPackage.dshDesktop.compatibleDsh).toBe('>=0.1.0-rc.5 <0.2.0')
     expect(runtimePackage.dependencies).toMatchObject({
       '@deepseek-ai/dsh': 'workspace:^',
       '@deepseek-ai/dsh-fui-app': 'workspace:^',

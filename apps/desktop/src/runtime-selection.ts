@@ -3,7 +3,6 @@
 import {
   quarantineManagedRuntimePointer,
   readManagedRuntime,
-  type ManagedRuntimeCandidate,
 } from '@deepseek-ai/dsh-host-runtime-updater/managed-runtime'
 
 /** Minimum desktop Host path fields changed by a managed runtime selection. */
@@ -11,12 +10,14 @@ export interface RuntimeSelectablePaths {
   readonly runtimeRoot: string
   readonly cliEntry: string
   readonly version: string
+  readonly fuiVersion: string
+  readonly compatibleDshRange: string
   readonly source: 'bundled' | 'managed'
 }
 
 /** Substitutable storage and diagnostic functions used by selection tests. */
 export interface RuntimeSelectionInternals {
-  readonly read?: (runtimeRoot: string) => Promise<ManagedRuntimeCandidate | undefined>
+  readonly read?: typeof readManagedRuntime
   readonly quarantine?: (runtimeRoot: string) => Promise<string | undefined>
   readonly report?: (message: string, error: unknown) => void
 }
@@ -27,7 +28,10 @@ export async function selectRuntimeCandidates<T extends RuntimeSelectablePaths>(
   internals: RuntimeSelectionInternals = {},
 ): Promise<readonly T[]> {
   try {
-    const managed = await (internals.read ?? readManagedRuntime)(bundled.runtimeRoot)
+    const managed = await (internals.read ?? readManagedRuntime)(bundled.runtimeRoot, {
+      fuiVersion: bundled.fuiVersion,
+      compatibleDshRange: bundled.compatibleDshRange,
+    })
     if (managed === undefined) return [bundled]
     return [{
       ...bundled,

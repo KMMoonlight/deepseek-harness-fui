@@ -34,9 +34,15 @@
     - text: Queue
     - img
   - heading "Desktop runtime" [level=3]
-  - paragraph: Check npm for a FUI-compatible DeepSeek Harness runtime and install it in user storage.
+  - paragraph: Check npm for official DSH updates and install versions supported by this desktop release.
   - button "Check and update"
   - term: Current version
   - definition:
     - code: 0.1.0-rc.5
     - text: Bundled with app
+  - term: Desktop FUI version
+  - definition:
+    - code: 0.1.0-rc.5
+  - term: Compatible official DSH
+  - definition:
+    - code: ">=0.1.0-rc.5 <0.2.0"

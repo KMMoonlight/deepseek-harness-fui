@@ -1,6 +1,7 @@
 # Agent Note: 桌面端通过经过校验的受管运行时完成更新
 
 Status: implemented
+Archived: 2026-08-16
 
 [English](2026-08-16-desktop-managed-runtime-updates.md) | 中文
 

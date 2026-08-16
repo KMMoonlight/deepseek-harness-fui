@@ -5,16 +5,37 @@ import { constants } from 'node:fs'
 import { access, lstat, mkdir, readFile, rename } from 'node:fs/promises'
 import { join } from 'node:path'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
-import { valid } from 'semver'
+import { satisfies, valid, validRange } from 'semver'
 
-/** Stable npm identity installed by the desktop runtime updater. */
+/** Stable official npm identity installed by the desktop runtime updater. */
 export const DSH_RUNTIME_PACKAGE = '@deepseek-ai/dsh'
-/** FUI bundle that every selectable managed runtime must carry. */
+/** Application-owned FUI bundle copied into each managed official runtime. */
 export const DSH_FUI_BUNDLE_PACKAGE = '@deepseek-ai/dsh-fui-app'
-/** Web assets required by the loopback renderer. */
+/** Application-owned Web assets required by the loopback renderer. */
 export const DSH_WEB_FRONTEND_PACKAGE = '@deepseek-ai/dsh-web-frontend'
 
-const POINTER_FORMAT_VERSION = 1
+/** Application-owned packages overlaid onto an otherwise official DSH dependency tree. */
+export const DSH_DESKTOP_OVERLAY_PACKAGES = [
+  DSH_FUI_BUNDLE_PACKAGE,
+  '@deepseek-ai/dsh-client-ui-fui',
+  '@deepseek-ai/dsh-client-ui-fui-layout',
+  '@deepseek-ai/dsh-client-ui-fui-surface',
+  '@deepseek-ai/dsh-client-ui-settings-runtime-updater',
+  '@deepseek-ai/dsh-host-runtime-updater',
+  DSH_WEB_FRONTEND_PACKAGE,
+] as const
+
+const OVERLAY_REQUIRED_ENTRIES: Readonly<Record<(typeof DSH_DESKTOP_OVERLAY_PACKAGES)[number], string>> = {
+  [DSH_FUI_BUNDLE_PACKAGE]: 'cordis.patch.yml',
+  '@deepseek-ai/dsh-client-ui-fui': 'lib/index.js',
+  '@deepseek-ai/dsh-client-ui-fui-layout': 'lib/client.js',
+  '@deepseek-ai/dsh-client-ui-fui-surface': 'lib/client.js',
+  '@deepseek-ai/dsh-client-ui-settings-runtime-updater': 'lib/client.js',
+  '@deepseek-ai/dsh-host-runtime-updater': 'lib/index.js',
+  [DSH_WEB_FRONTEND_PACKAGE]: 'dist/index.html',
+}
+
+const POINTER_FORMAT_VERSION = 2
 const POINTER_FILE = 'current.json'
 
 interface PackageManifest {
@@ -27,7 +48,16 @@ interface RuntimePointer {
   readonly formatVersion: number
   readonly packageName: string
   readonly version: string
+  readonly fuiVersion: string
   readonly installedAt: string
+}
+
+/** Application release facts required to accept a managed official runtime. */
+export interface ManagedRuntimeExpectations {
+  /** Exact version of every application-owned FUI overlay package. */
+  readonly fuiVersion: string
+  /** Official DSH semver range supported by this FUI release. */
+  readonly compatibleDshRange: string
 }
 
 /** Validated managed runtime selected by the pointer file. */
@@ -39,7 +69,7 @@ export interface ManagedRuntimeCandidate {
 }
 
 /**
- * Resolve paths owned by one exact managed runtime version.
+ * Resolve paths owned by one exact managed official DSH version.
  * @param runtimeRoot - Private desktop runtime storage root.
  * @param version - Exact semver selected for the version directory.
  * @returns CLI, frontend, and version-root paths.
@@ -55,6 +85,16 @@ export function managedRuntimePaths(runtimeRoot: string, version: string): Manag
   }
 }
 
+/**
+ * Resolve one fixed package identity below a node_modules root.
+ * @param nodeModulesRoot - Absolute node_modules directory.
+ * @param packageName - Unscoped or scoped npm package name.
+ * @returns absolute package root below the supplied node_modules directory.
+ */
+export function nodeModulesPackageRoot(nodeModulesRoot: string, packageName: string): string {
+  return join(nodeModulesRoot, ...packageName.split('/'))
+}
+
 async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, 'utf8')) as unknown
 }
@@ -66,6 +106,15 @@ function packageManifest(value: unknown, path: string): PackageManifest {
   return value
 }
 
+function validateExpectations(expectations: ManagedRuntimeExpectations): void {
+  if (valid(expectations.fuiVersion) !== expectations.fuiVersion) {
+    throw new Error(`desktop FUI version is not valid semver: ${expectations.fuiVersion}`)
+  }
+  if (validRange(expectations.compatibleDshRange) === null) {
+    throw new Error(`desktop DSH compatibility is not a valid semver range: ${expectations.compatibleDshRange}`)
+  }
+}
+
 function pointer(value: unknown): RuntimePointer {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('desktop runtime pointer is not an object')
@@ -75,6 +124,8 @@ function pointer(value: unknown): RuntimePointer {
     || record.packageName !== DSH_RUNTIME_PACKAGE
     || typeof record.version !== 'string'
     || valid(record.version) !== record.version
+    || typeof record.fuiVersion !== 'string'
+    || valid(record.fuiVersion) !== record.fuiVersion
     || typeof record.installedAt !== 'string'
     || Number.isNaN(Date.parse(record.installedAt))) {
     throw new Error('desktop runtime pointer has unsupported fields')
@@ -83,53 +134,64 @@ function pointer(value: unknown): RuntimePointer {
     formatVersion: record.formatVersion,
     packageName: record.packageName,
     version: record.version,
+    fuiVersion: record.fuiVersion,
     installedAt: record.installedAt,
   }
 }
 
 /**
- * Validate a runtime tree before installation commit or desktop boot.
+ * Validate a composed runtime tree before installation commit or desktop boot.
  * @param runtimeRoot - Private desktop runtime storage root.
- * @param version - Exact semver whose tree must be complete.
+ * @param version - Exact official DSH version whose tree must be complete.
+ * @param expectations - Application-owned FUI version and supported DSH range.
  * @returns validated paths for the selected version.
  */
-export async function validateManagedRuntime(runtimeRoot: string, version: string): Promise<ManagedRuntimeCandidate> {
+export async function validateManagedRuntime(
+  runtimeRoot: string,
+  version: string,
+  expectations: ManagedRuntimeExpectations,
+): Promise<ManagedRuntimeCandidate> {
+  validateExpectations(expectations)
+  if (!satisfies(version, expectations.compatibleDshRange, { includePrerelease: true })) {
+    throw new Error(`official DSH ${version} is outside desktop compatibility ${expectations.compatibleDshRange}`)
+  }
   const paths = managedRuntimePaths(runtimeRoot, version)
   const metadata = await lstat(paths.root)
   if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
     throw new Error(`desktop runtime version root is not a real directory: ${paths.root}`)
   }
-  const cliManifestPath = join(paths.root, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
+  const nodeModulesRoot = join(paths.root, 'node_modules')
+  const cliManifestPath = join(nodeModulesPackageRoot(nodeModulesRoot, DSH_RUNTIME_PACKAGE), 'package.json')
   const cliManifest = packageManifest(await readJson(cliManifestPath), cliManifestPath)
   if (cliManifest.name !== DSH_RUNTIME_PACKAGE || cliManifest.version !== version) {
     throw new Error(`desktop runtime package identity does not match ${DSH_RUNTIME_PACKAGE}@${version}`)
   }
-  if (typeof cliManifest.dependencies?.[DSH_FUI_BUNDLE_PACKAGE] !== 'string') {
-    throw new Error(`desktop runtime package does not declare ${DSH_FUI_BUNDLE_PACKAGE}`)
+  if (cliManifest.dependencies?.[DSH_FUI_BUNDLE_PACKAGE] !== expectations.fuiVersion) {
+    throw new Error(`desktop runtime does not select FUI overlay ${DSH_FUI_BUNDLE_PACKAGE}@${expectations.fuiVersion}`)
   }
-  const fuiManifestPath = join(paths.root, 'node_modules', '@deepseek-ai', 'dsh-fui-app', 'package.json')
-  const fuiManifest = packageManifest(await readJson(fuiManifestPath), fuiManifestPath)
-  if (fuiManifest.name !== DSH_FUI_BUNDLE_PACKAGE || fuiManifest.version !== version) {
-    throw new Error(`desktop runtime FUI bundle identity does not match ${DSH_FUI_BUNDLE_PACKAGE}@${version}`)
+  for (const packageName of DSH_DESKTOP_OVERLAY_PACKAGES) {
+    const packageRoot = nodeModulesPackageRoot(nodeModulesRoot, packageName)
+    const manifestPath = join(packageRoot, 'package.json')
+    const manifest = packageManifest(await readJson(manifestPath), manifestPath)
+    if (manifest.name !== packageName || manifest.version !== expectations.fuiVersion) {
+      throw new Error(`desktop FUI overlay identity does not match ${packageName}@${expectations.fuiVersion}`)
+    }
+    await access(join(packageRoot, OVERLAY_REQUIRED_ENTRIES[packageName]), constants.R_OK)
   }
-  const frontendManifestPath = join(paths.root, 'node_modules', '@deepseek-ai', 'dsh-web-frontend', 'package.json')
-  const frontendManifest = packageManifest(await readJson(frontendManifestPath), frontendManifestPath)
-  if (frontendManifest.name !== DSH_WEB_FRONTEND_PACKAGE || frontendManifest.version !== version) {
-    throw new Error(`desktop runtime frontend identity does not match ${DSH_WEB_FRONTEND_PACKAGE}@${version}`)
-  }
-  await Promise.all([
-    access(paths.cliEntry, constants.R_OK),
-    access(paths.frontendEntry, constants.R_OK),
-  ])
+  await access(paths.cliEntry, constants.R_OK)
   return paths
 }
 
 /**
  * Read and validate the currently selected managed runtime, if one exists.
  * @param runtimeRoot - Private desktop runtime storage root.
+ * @param expectations - FUI version and official DSH range owned by this desktop release.
  * @returns validated selected paths, or `undefined` when no pointer exists.
  */
-export async function readManagedRuntime(runtimeRoot: string): Promise<ManagedRuntimeCandidate | undefined> {
+export async function readManagedRuntime(
+  runtimeRoot: string,
+  expectations: ManagedRuntimeExpectations,
+): Promise<ManagedRuntimeCandidate | undefined> {
   let raw: unknown
   try {
     raw = await readJson(join(runtimeRoot, POINTER_FILE))
@@ -138,20 +200,29 @@ export async function readManagedRuntime(runtimeRoot: string): Promise<ManagedRu
     throw error
   }
   const selected = pointer(raw)
-  return validateManagedRuntime(runtimeRoot, selected.version)
+  if (selected.fuiVersion !== expectations.fuiVersion) {
+    throw new Error(`desktop runtime FUI ${selected.fuiVersion} does not match application FUI ${expectations.fuiVersion}`)
+  }
+  return validateManagedRuntime(runtimeRoot, selected.version, expectations)
 }
 
 /**
  * Atomically select one already validated managed runtime for the next launch.
  * @param runtimeRoot - Private desktop runtime storage root.
- * @param version - Exact validated version to select.
+ * @param version - Exact validated official DSH version to select.
+ * @param expectations - FUI version and official DSH range owned by this desktop release.
  */
-export async function commitManagedRuntime(runtimeRoot: string, version: string): Promise<void> {
-  await validateManagedRuntime(runtimeRoot, version)
+export async function commitManagedRuntime(
+  runtimeRoot: string,
+  version: string,
+  expectations: ManagedRuntimeExpectations,
+): Promise<void> {
+  await validateManagedRuntime(runtimeRoot, version, expectations)
   const next: RuntimePointer = {
     formatVersion: POINTER_FORMAT_VERSION,
     packageName: DSH_RUNTIME_PACKAGE,
     version,
+    fuiVersion: expectations.fuiVersion,
     installedAt: new Date().toISOString(),
   }
   await writeFileAtomic(join(runtimeRoot, POINTER_FILE), `${JSON.stringify(next, null, 2)}\n`, {

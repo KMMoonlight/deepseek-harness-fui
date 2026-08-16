@@ -824,6 +824,12 @@ export interface Config {
   currentVersion: string
   /** Whether the current Host came from application resources or managed storage. */
   currentSource: DesktopRuntimeSource
+  /** Exact application-owned FUI overlay version. */
+  fuiVersion: string
+  /** Official DSH versions this desktop FUI release supports. */
+  compatibleDshRange: string
+  /** Absolute immutable node_modules root containing the application-owned FUI overlay. */
+  overlayRoot: string
   /** Absolute writable root holding managed runtime versions and the active pointer. */
   runtimeRoot: string
   /** Absolute packaged pnpm JavaScript entry supplied by the Electron shell. */
@@ -846,7 +852,7 @@ export interface Config {
 export type DesktopRuntimeSource = 'bundled' | 'managed'
 ```
 
-Source: [`packages/host/runtime-updater/src/index.ts:33`](../packages/host/runtime-updater/src/index.ts)
+Source: [`packages/host/runtime-updater/src/index.ts:36`](../packages/host/runtime-updater/src/index.ts)
 
 <a id="deepseek-aidsh-host-webserver"></a>
 

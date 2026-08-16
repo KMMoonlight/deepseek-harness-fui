@@ -5,15 +5,22 @@ const bundled: RuntimeSelectablePaths & { readonly pnpmEntry: string } = {
   runtimeRoot: '/user/dsh/desktop-runtime',
   cliEntry: '/app/host/dsh/lib/bin.js',
   version: '1.0.0',
+  fuiVersion: '7.0.0',
+  compatibleDshRange: '>=1.0.0 <2.0.0',
   source: 'bundled',
   pnpmEntry: '/app/host/pnpm.cjs',
 }
 
 describe('desktop runtime selection', () => {
   it('keeps the bundled runtime when no pointer is selected', async () => {
+    const read = vi.fn().mockResolvedValue(undefined)
     await expect(selectRuntimeCandidates(bundled, {
-      read: vi.fn().mockResolvedValue(undefined),
+      read,
     })).resolves.toEqual([bundled])
+    expect(read).toHaveBeenCalledWith(bundled.runtimeRoot, {
+      fuiVersion: bundled.fuiVersion,
+      compatibleDshRange: bundled.compatibleDshRange,
+    })
   })
 
   it('tries a validated managed runtime first without changing packaged process tools', async () => {

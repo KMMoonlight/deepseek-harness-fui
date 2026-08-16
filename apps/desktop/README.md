@@ -34,7 +34,7 @@ Both commands perform the complete repository build and stage a closed productio
 
 ## Plugins and user data
 
-The app boots the ordinary writable `fui` profile under `~/.dsh/profiles/fui`. In-box bundles come from a validated managed runtime when one is selected, otherwise from the immutable packaged runtime; third-party profile bundles and their lockfile remain in the user profile, so runtime and application upgrades do not erase them.
+The app boots the ordinary writable `fui` profile under `~/.dsh/profiles/fui`. Official bundles come from a validated managed DSH runtime when one is selected, while the FUI surface and Web frontend stay owned by the installed desktop application; without a managed selection, the complete immutable packaged runtime is used. Third-party profile bundles and their lockfile remain in the user profile, so runtime and application upgrades do not erase them.
 
 The packaged Host receives the bundled pnpm entry through `DSH_PNPM_ENTRY`. Open **Settings → Plugins → Install plugin**, enter one npm package or Git spec, and submit it to the desktop-only installer. The Host invokes the existing profile command without a shell or login-shell dependency:
 
@@ -46,9 +46,11 @@ Installation changes executable application composition. Use only packages from 
 
 ## Runtime updates
 
-**Settings → General → Desktop runtime** shows the active `@deepseek-ai/dsh` version. **Check and update** reads the configured npm dist-tag and automatically installs a newer compatible runtime under `$DSH_HOME/desktop-runtime`. It never edits application resources or a global npm installation.
+**Settings → General → Desktop runtime** shows the active official `@deepseek-ai/dsh` version, the application FUI version, and the supported DSH range. **Check and update** reads the configured npm dist-tag and automatically installs a newer compatible official DSH runtime under `$DSH_HOME/desktop-runtime`. DSH and the desktop application therefore do not need coordinated releases. It never edits application resources or a global npm installation.
 
-Compatibility fails closed: the published root package must declare `@deepseek-ai/dsh-fui-app`, the installed tree must contain the FUI bundle and Web frontend, and the CLI must report the requested version. A successful install becomes active after the application is fully restarted. Electron validates the managed tree again before boot; an invalid tree or a Host that fails before readiness is preserved for diagnostics and the application falls back to its bundled runtime. An npm release without the FUI bundle is reported as incompatible and is not installed.
+The updater installs the official DSH dependency closure, then overlays the exact FUI packages and Web assets shipped with the desktop application. This preserves official CLI, Host, and plugin updates without requiring official DSH to publish this FUI. Compatibility fails closed: the official version must fall inside `dshDesktop.compatibleDsh`, every application overlay package must match the desktop FUI version, and the CLI must report the requested version. A successful install becomes active after the application is fully restarted. Electron validates the managed tree again before boot; an invalid tree or a Host that fails before readiness is preserved for diagnostics and the application falls back to its bundled runtime.
+
+An official non-breaking release inside the declared range can be installed immediately. If official DSH introduces an incompatible API, configuration, or composition change, the current desktop release reports it as incompatible; the FUI project then ships a new desktop version with the required adaptation and a revised range.
 
 ## Known limitations
 

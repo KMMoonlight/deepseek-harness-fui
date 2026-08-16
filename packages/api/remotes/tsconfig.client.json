@@ -40,9 +40,6 @@
       "path": "../../host/plugin-inventory"
     },
     {
-      "path": "../../host/runtime-updater"
-    },
-    {
       "path": "../../interaction/commands"
     },
     {

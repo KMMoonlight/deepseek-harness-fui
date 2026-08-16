@@ -1,22 +1,25 @@
 /** Desktop-only Host provider for one-click managed DSH runtime updates. */
 
 import assert from 'node:assert/strict'
-import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises'
-import { isAbsolute, join } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { cp, mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
+import { dirname, isAbsolute, join, sep } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { SubprocessHandle, SubprocessOutcome, SubprocessOutputRead } from '@deepseek-ai/dsh-subprocess'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import { gt, valid } from 'semver'
+import { gt, satisfies, valid, validRange } from 'semver'
 // Typert-generated ./typert and ./remote artifacts import Zod at runtime.
 import type {} from 'zod'
 import {
   commitManagedRuntime,
+  DSH_DESKTOP_OVERLAY_PACKAGES,
   DSH_FUI_BUNDLE_PACKAGE,
   DSH_RUNTIME_PACKAGE,
   managedRuntimePaths,
+  nodeModulesPackageRoot,
   validateManagedRuntime,
+  type ManagedRuntimeExpectations,
 } from './managed-runtime.ts'
 import type {
   DesktopRuntimeSource,
@@ -35,6 +38,12 @@ export interface Config {
   currentVersion: string
   /** Whether the current Host came from application resources or managed storage. */
   currentSource: DesktopRuntimeSource
+  /** Exact application-owned FUI overlay version. */
+  fuiVersion: string
+  /** Official DSH versions this desktop FUI release supports. */
+  compatibleDshRange: string
+  /** Absolute immutable node_modules root containing the application-owned FUI overlay. */
+  overlayRoot: string
   /** Absolute writable root holding managed runtime versions and the active pointer. */
   runtimeRoot: string
   /** Absolute packaged pnpm JavaScript entry supplied by the Electron shell. */
@@ -55,7 +64,6 @@ export interface Config {
 
 interface RegistryManifest {
   readonly version: string
-  readonly dependencies: Readonly<Record<string, string>>
 }
 
 interface ChildResult {
@@ -98,13 +106,21 @@ function registryManifest(value: unknown): RegistryManifest {
   if (!isObject(value) || typeof value.version !== 'string' || valid(value.version) !== value.version) {
     throw new Error('registry metadata has no valid exact version')
   }
-  if (!isObject(value.dependencies)) throw new Error('registry metadata has no dependency map')
-  const dependencies: Record<string, string> = {}
-  for (const [name, range] of Object.entries(value.dependencies)) {
-    if (typeof range !== 'string') throw new Error(`registry dependency range is not a string: ${name}`)
-    dependencies[name] = range
+  return { version: value.version }
+}
+
+/** Validate immutable overlay package identities before exposing the update operation. */
+function validateOverlaySource(config: Pick<Config, 'fuiVersion' | 'overlayRoot'>): void {
+  if (!isAbsolute(config.overlayRoot) || !existsSync(config.overlayRoot)) {
+    throw new Error('runtime-updater: overlayRoot must name an existing absolute directory')
   }
-  return { version: value.version, dependencies }
+  for (const packageName of DSH_DESKTOP_OVERLAY_PACKAGES) {
+    const manifestPath = join(nodeModulesPackageRoot(config.overlayRoot, packageName), 'package.json')
+    const value = JSON.parse(readFileSync(manifestPath, 'utf8')) as unknown
+    if (!isObject(value) || value.name !== packageName || value.version !== config.fuiVersion) {
+      throw new Error(`runtime-updater: overlay source does not contain ${packageName}@${config.fuiVersion}`)
+    }
+  }
 }
 
 /** Registry URL for one exact package dist-tag document. */
@@ -129,6 +145,9 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
   static Config: z<Config> = z.object({
     currentVersion: z.string(),
     currentSource: z.union(['bundled', 'managed']).default('bundled'),
+    fuiVersion: z.string(),
+    compatibleDshRange: z.string(),
+    overlayRoot: z.string(),
     runtimeRoot: z.string(),
     pnpmEntry: z.string(),
     registryUrl: z.string().default('https://registry.npmjs.org'),
@@ -145,6 +164,13 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
   private readonly lifecycle = new AbortController()
   private active: Promise<RuntimeUpdateResult> | undefined
 
+  private get runtimeExpectations(): ManagedRuntimeExpectations {
+    return {
+      fuiVersion: this.config.fuiVersion,
+      compatibleDshRange: this.config.compatibleDshRange,
+    }
+  }
+
   /**
    * @param ctx - Desktop Host context carrying the managed subprocess service.
    * @param config - Current version, registry, destination, and bounded execution policy.
@@ -157,6 +183,13 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
     if (valid(config.currentVersion) !== config.currentVersion) {
       throw new Error('runtime-updater: currentVersion must be valid exact semver')
     }
+    if (valid(config.fuiVersion) !== config.fuiVersion) {
+      throw new Error('runtime-updater: fuiVersion must be valid exact semver')
+    }
+    if (validRange(config.compatibleDshRange) === null) {
+      throw new Error('runtime-updater: compatibleDshRange must be valid semver')
+    }
+    validateOverlaySource(config)
     if (!isAbsolute(config.runtimeRoot)) {
       throw new Error('runtime-updater: runtimeRoot must be absolute')
     }
@@ -185,6 +218,8 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
     return Promise.resolve({
       packageName: DSH_RUNTIME_PACKAGE,
       currentVersion: this.config.currentVersion,
+      fuiVersion: this.config.fuiVersion,
+      compatibleDshRange: this.config.compatibleDshRange,
       source: this.config.currentSource,
       distTag: this.config.distTag,
     })
@@ -224,10 +259,10 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
         },
       }
     }
-    if (typeof latest.dependencies[DSH_FUI_BUNDLE_PACKAGE] !== 'string') {
+    if (!satisfies(latest.version, this.config.compatibleDshRange, { includePrerelease: true })) {
       return failed(
         'incompatible',
-        `The published ${DSH_RUNTIME_PACKAGE}@${latest.version} package does not include ${DSH_FUI_BUNDLE_PACKAGE}.`,
+        `Official ${DSH_RUNTIME_PACKAGE}@${latest.version} is outside desktop compatibility ${this.config.compatibleDshRange}.`,
         { latestVersion: latest.version },
       )
     }
@@ -273,7 +308,7 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
     await mkdir(join(this.config.runtimeRoot, 'versions'), { recursive: true, mode: 0o700 })
 
     try {
-      await validateManagedRuntime(this.config.runtimeRoot, version)
+      await validateManagedRuntime(this.config.runtimeRoot, version, this.runtimeExpectations)
     } catch {
       const prepared = await this.prepare(version, signal)
       if (!prepared.ok) return prepared.result
@@ -317,7 +352,7 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
       })
     }
     try {
-      await commitManagedRuntime(this.config.runtimeRoot, version)
+      await commitManagedRuntime(this.config.runtimeRoot, version, this.runtimeExpectations)
     } catch (error) {
       return failed(
         'install-failed',
@@ -360,6 +395,7 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
         '  esbuild: true',
         '  koffi: true',
         '  node-pty: true',
+        '  \'@google/genai\': false',
         '  node-addon-require-builtin: false',
         '  protobufjs: false',
         '  \'@deepseek-ai/dsh-subprocess-local\': true',
@@ -372,6 +408,7 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
         this.config.pnpmEntry,
         '--config.verify-deps-before-run=false',
         '--config.manage-package-manager-versions=false',
+        '--config.node-linker=hoisted',
         `--registry=${this.config.registryUrl}`,
         'install',
         '--prod',
@@ -390,9 +427,10 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
           }),
         }
       }
+      await this.installOverlay(staging)
       await rename(staging, paths.root)
       try {
-        await validateManagedRuntime(this.config.runtimeRoot, version)
+        await validateManagedRuntime(this.config.runtimeRoot, version, this.runtimeExpectations)
       } catch (error) {
         await this.quarantineVersion(version)
         return {
@@ -418,6 +456,32 @@ export class RuntimeUpdaterGateway extends TypertRemoteService {
     } finally {
       await rm(staging, { recursive: true, force: true })
     }
+  }
+
+  /** Copy this application release's FUI packages over the isolated official DSH installation. */
+  private async installOverlay(staging: string): Promise<void> {
+    const targetNodeModules = join(staging, 'node_modules')
+    for (const packageName of DSH_DESKTOP_OVERLAY_PACKAGES) {
+      const source = await realpath(nodeModulesPackageRoot(this.config.overlayRoot, packageName))
+      const destination = nodeModulesPackageRoot(targetNodeModules, packageName)
+      const nestedModules = join(source, 'node_modules')
+      await rm(destination, { recursive: true, force: true })
+      await mkdir(dirname(destination), { recursive: true, mode: 0o700 })
+      await cp(source, destination, {
+        recursive: true,
+        dereference: true,
+        filter: path => path !== nestedModules && !path.startsWith(`${nestedModules}${sep}`),
+      })
+    }
+
+    const cliManifestPath = join(nodeModulesPackageRoot(targetNodeModules, DSH_RUNTIME_PACKAGE), 'package.json')
+    const raw = JSON.parse(await readFile(cliManifestPath, 'utf8')) as unknown
+    if (!isObject(raw)) throw new Error(`official DSH manifest is not an object: ${cliManifestPath}`)
+    const dependencies = isObject(raw.dependencies) ? raw.dependencies : {}
+    await writeFile(cliManifestPath, `${JSON.stringify({
+      ...raw,
+      dependencies: { ...dependencies, [DSH_FUI_BUNDLE_PACKAGE]: this.config.fuiVersion },
+    }, null, 2)}\n`, { mode: 0o600 })
   }
 
   private abortedInstallIfNeeded(

@@ -15,6 +15,10 @@ export interface RuntimeUpdateDescription {
   readonly packageName: string
   /** Version serving the current renderer and Host. */
   readonly currentVersion: string
+  /** FUI overlay version supplied by the immutable desktop application. */
+  readonly fuiVersion: string
+  /** Official DSH versions this desktop FUI release can compose with. */
+  readonly compatibleDshRange: string
   /** Whether the current Host came from application resources or managed storage. */
   readonly source: DesktopRuntimeSource
   /** npm dist-tag selected by this desktop deployment. */

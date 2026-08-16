@@ -35,6 +35,9 @@ interface HostPaths {
   readonly electronRunAsNode: boolean
   readonly runtimeRoot: string
   readonly version: string
+  readonly fuiVersion: string
+  readonly compatibleDshRange: string
+  readonly overlayRoot: string
   readonly source: 'bundled' | 'managed'
 }
 
@@ -55,19 +58,47 @@ function packageVersion(cliEntry: string): string {
   return manifest.version
 }
 
+function manifestVersion(manifestPath: string): string {
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { version?: unknown }
+  if (typeof manifest.version !== 'string') {
+    throw new Error(`desktop package manifest has no version: ${manifestPath}`)
+  }
+  return manifest.version
+}
+
+function compatibleDshRange(): string {
+  const manifestPath = join(DESKTOP_DIR, 'package.json')
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    dshDesktop?: { compatibleDsh?: unknown }
+  }
+  const range = manifest.dshDesktop?.compatibleDsh
+  if (typeof range !== 'string') {
+    throw new Error(`desktop manifest has no dshDesktop.compatibleDsh: ${manifestPath}`)
+  }
+  return range
+}
+
 /** Resolve the immutable checkout or packaged fallback runtime. */
 function bundledHostPaths(): HostPaths {
   const runtimeRoot = dshHomePath('desktop-runtime')
+  const overlayRoot = app.isPackaged
+    ? join(process.resourcesPath, 'host/node_modules')
+    : join(DESKTOP_DIR, 'runtime/node_modules')
+  const fuiVersion = manifestVersion(join(overlayRoot, '@deepseek-ai/dsh-fui-app/package.json'))
+  const dshRange = compatibleDshRange()
   if (!app.isPackaged) {
     const cliEntry = join(REPOSITORY_ROOT, 'apps/cli/lib/bin.js')
     return {
       nodeExecutable: process.env.DSH_DESKTOP_NODE_EXECUTABLE ?? 'node',
       cliEntry,
-      pnpmEntry: join(REPOSITORY_ROOT, 'node_modules/pnpm/bin/pnpm.cjs'),
+      pnpmEntry: join(overlayRoot, 'pnpm/bin/pnpm.cjs'),
       cwd: process.cwd(),
       electronRunAsNode: false,
       runtimeRoot,
       version: packageVersion(cliEntry),
+      fuiVersion,
+      compatibleDshRange: dshRange,
+      overlayRoot,
       source: 'bundled',
     }
   }
@@ -80,6 +111,9 @@ function bundledHostPaths(): HostPaths {
     electronRunAsNode: true,
     runtimeRoot,
     version: packageVersion(cliEntry),
+    fuiVersion,
+    compatibleDshRange: dshRange,
+    overlayRoot,
     source: 'bundled',
   }
 }
@@ -237,6 +271,9 @@ async function boot(): Promise<void> {
             DSH_DESKTOP_RUNTIME_ROOT: paths.runtimeRoot,
             DSH_DESKTOP_RUNTIME_SOURCE: paths.source,
             DSH_DESKTOP_RUNTIME_VERSION: paths.version,
+            DSH_DESKTOP_FUI_VERSION: paths.fuiVersion,
+            DSH_DESKTOP_DSH_COMPATIBILITY: paths.compatibleDshRange,
+            DSH_DESKTOP_OVERLAY_ROOT: paths.overlayRoot,
             ...(paths.pnpmEntry === undefined ? {} : { DSH_PNPM_ENTRY: paths.pnpmEntry }),
           },
         }),

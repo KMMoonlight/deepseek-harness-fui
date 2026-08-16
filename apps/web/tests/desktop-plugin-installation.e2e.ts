@@ -16,6 +16,7 @@ import { newEnglishPage, saveFailureShot } from './support.ts'
 
 const FUI_OVERLAY = fileURLToPath(new URL('../../../packages/bundle/fui-app/cordis.patch.yml', import.meta.url))
 const CLI_ENTRY = fileURLToPath(new URL('../../cli/lib/bin.js', import.meta.url))
+const OVERLAY_ROOT = fileURLToPath(new URL('../../desktop/runtime/node_modules/', import.meta.url))
 const EXPECTED = fileURLToPath(new URL('./snapshots/desktop-plugin-installation/form.expected.md', import.meta.url))
 const RUNTIME_EXPECTED = fileURLToPath(new URL('./snapshots/desktop-plugin-installation/runtime.expected.md', import.meta.url))
 const MODE = webSnapshotMode()
@@ -32,6 +33,9 @@ describe('web e2e: desktop plugin installation', () => {
   const originalRuntimeRoot = process.env.DSH_DESKTOP_RUNTIME_ROOT
   const originalRuntimeSource = process.env.DSH_DESKTOP_RUNTIME_SOURCE
   const originalRuntimeVersion = process.env.DSH_DESKTOP_RUNTIME_VERSION
+  const originalFuiVersion = process.env.DSH_DESKTOP_FUI_VERSION
+  const originalDshCompatibility = process.env.DSH_DESKTOP_DSH_COMPATIBILITY
+  const originalOverlayRoot = process.env.DSH_DESKTOP_OVERLAY_ROOT
 
   beforeAll(async () => {
     runtimeRoot = await mkdtemp(join(tmpdir(), 'dsh-desktop-runtime-e2e-'))
@@ -41,6 +45,9 @@ describe('web e2e: desktop plugin installation', () => {
     process.env.DSH_DESKTOP_RUNTIME_ROOT = runtimeRoot
     process.env.DSH_DESKTOP_RUNTIME_SOURCE = 'bundled'
     process.env.DSH_DESKTOP_RUNTIME_VERSION = '0.1.0-rc.5'
+    process.env.DSH_DESKTOP_FUI_VERSION = '0.1.0-rc.5'
+    process.env.DSH_DESKTOP_DSH_COMPATIBILITY = '>=0.1.0-rc.5 <0.2.0'
+    process.env.DSH_DESKTOP_OVERLAY_ROOT = OVERLAY_ROOT
     scaffold = await launchWebScaffold({ extraOverlayPath: FUI_OVERLAY })
     browser = await chromium.launch()
     page = await newEnglishPage(browser, 900)
@@ -75,6 +82,12 @@ describe('web e2e: desktop plugin installation', () => {
       else process.env.DSH_DESKTOP_RUNTIME_SOURCE = originalRuntimeSource
       if (originalRuntimeVersion === undefined) delete process.env.DSH_DESKTOP_RUNTIME_VERSION
       else process.env.DSH_DESKTOP_RUNTIME_VERSION = originalRuntimeVersion
+      if (originalFuiVersion === undefined) delete process.env.DSH_DESKTOP_FUI_VERSION
+      else process.env.DSH_DESKTOP_FUI_VERSION = originalFuiVersion
+      if (originalDshCompatibility === undefined) delete process.env.DSH_DESKTOP_DSH_COMPATIBILITY
+      else process.env.DSH_DESKTOP_DSH_COMPATIBILITY = originalDshCompatibility
+      if (originalOverlayRoot === undefined) delete process.env.DSH_DESKTOP_OVERLAY_ROOT
+      else process.env.DSH_DESKTOP_OVERLAY_ROOT = originalOverlayRoot
       await rm(runtimeRoot, { recursive: true, force: true })
     }
   })
@@ -84,7 +97,9 @@ describe('web e2e: desktop plugin installation', () => {
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: 'Settings' })
     await dialog.getByRole('heading', { name: 'Desktop runtime', exact: true }).waitFor({ timeout: 10_000 })
-    expect(await dialog.getByText('0.1.0-rc.5', { exact: true }).count()).toBe(1)
+    const versions = dialog.getByText('0.1.0-rc.5', { exact: true })
+    await versions.first().waitFor({ timeout: 10_000 })
+    expect(await versions.count()).toBe(2)
     expect(await dialog.getByText('Bundled with app', { exact: true }).count()).toBe(1)
     expect(await dialog.getByRole('button', { name: 'Check and update', exact: true }).isEnabled()).toBe(true)
     const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)

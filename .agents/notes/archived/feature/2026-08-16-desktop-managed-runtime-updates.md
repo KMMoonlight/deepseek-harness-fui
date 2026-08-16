@@ -1,6 +1,7 @@
 # Agent Note: Desktop updates use a validated managed runtime
 
 Status: implemented
+Archived: 2026-08-16
 
 English | [中文](2026-08-16-desktop-managed-runtime-updates.zh.md)
 

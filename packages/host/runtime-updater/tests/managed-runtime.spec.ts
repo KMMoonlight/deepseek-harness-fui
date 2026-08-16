@@ -4,16 +4,32 @@ import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   commitManagedRuntime,
+  DSH_DESKTOP_OVERLAY_PACKAGES,
   DSH_FUI_BUNDLE_PACKAGE,
   DSH_RUNTIME_PACKAGE,
-  DSH_WEB_FRONTEND_PACKAGE,
   managedRuntimePaths,
+  nodeModulesPackageRoot,
   quarantineManagedRuntimePointer,
   readManagedRuntime,
   validateManagedRuntime,
+  type ManagedRuntimeExpectations,
 } from '../src/managed-runtime.ts'
 
 const roots: string[] = []
+const expectations: ManagedRuntimeExpectations = {
+  fuiVersion: '7.0.0',
+  compatibleDshRange: '>=1.0.0 <2.0.0',
+}
+
+const overlayEntries: Readonly<Record<(typeof DSH_DESKTOP_OVERLAY_PACKAGES)[number], string>> = {
+  [DSH_FUI_BUNDLE_PACKAGE]: 'cordis.patch.yml',
+  '@deepseek-ai/dsh-client-ui-fui': 'lib/index.js',
+  '@deepseek-ai/dsh-client-ui-fui-layout': 'lib/client.js',
+  '@deepseek-ai/dsh-client-ui-fui-surface': 'lib/client.js',
+  '@deepseek-ai/dsh-client-ui-settings-runtime-updater': 'lib/client.js',
+  '@deepseek-ai/dsh-host-runtime-updater': 'lib/index.js',
+  '@deepseek-ai/dsh-web-frontend': 'dist/index.html',
+}
 
 afterEach(async () => {
   await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })))
@@ -30,84 +46,105 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   await writeFile(path, `${JSON.stringify(value)}\n`)
 }
 
-async function writeRuntime(runtimeRoot: string, version = '1.2.3'): Promise<void> {
-  const paths = managedRuntimePaths(runtimeRoot, version)
-  const packageRoot = join(paths.root, 'node_modules', '@deepseek-ai')
-  await writeJson(join(packageRoot, 'dsh/package.json'), {
+async function writeRuntime(runtimeRoot: string, dshVersion = '1.2.3', fuiVersion = expectations.fuiVersion): Promise<void> {
+  const paths = managedRuntimePaths(runtimeRoot, dshVersion)
+  const nodeModulesRoot = join(paths.root, 'node_modules')
+  const dshRoot = nodeModulesPackageRoot(nodeModulesRoot, DSH_RUNTIME_PACKAGE)
+  await writeJson(join(dshRoot, 'package.json'), {
     name: DSH_RUNTIME_PACKAGE,
-    version,
-    dependencies: { [DSH_FUI_BUNDLE_PACKAGE]: `^${version}` },
-  })
-  await writeJson(join(packageRoot, 'dsh-fui-app/package.json'), {
-    name: DSH_FUI_BUNDLE_PACKAGE,
-    version,
-  })
-  await writeJson(join(packageRoot, 'dsh-web-frontend/package.json'), {
-    name: DSH_WEB_FRONTEND_PACKAGE,
-    version,
+    version: dshVersion,
+    dependencies: { [DSH_FUI_BUNDLE_PACKAGE]: fuiVersion },
   })
   await mkdir(dirname(paths.cliEntry), { recursive: true })
-  await mkdir(dirname(paths.frontendEntry), { recursive: true })
   await writeFile(paths.cliEntry, '#!/usr/bin/env node\n')
-  await writeFile(paths.frontendEntry, '<!doctype html>\n')
+  for (const packageName of DSH_DESKTOP_OVERLAY_PACKAGES) {
+    const packageRoot = nodeModulesPackageRoot(nodeModulesRoot, packageName)
+    await writeJson(join(packageRoot, 'package.json'), { name: packageName, version: fuiVersion })
+    const entry = join(packageRoot, overlayEntries[packageName])
+    await mkdir(dirname(entry), { recursive: true })
+    await writeFile(entry, packageName === '@deepseek-ai/dsh-web-frontend' ? '<!doctype html>\n' : '// fixture\n')
+  }
 }
 
 describe('managed desktop runtime storage', () => {
-  it('validates exact package identities and atomically selects one complete tree', async () => {
+  it('validates official DSH plus the application overlay and atomically selects it', async () => {
     const runtimeRoot = await root()
     await writeRuntime(runtimeRoot)
 
-    await expect(validateManagedRuntime(runtimeRoot, '1.2.3')).resolves.toEqual(
+    await expect(validateManagedRuntime(runtimeRoot, '1.2.3', expectations)).resolves.toEqual(
       managedRuntimePaths(runtimeRoot, '1.2.3'),
     )
-    await commitManagedRuntime(runtimeRoot, '1.2.3')
-    await expect(readManagedRuntime(runtimeRoot)).resolves.toEqual(managedRuntimePaths(runtimeRoot, '1.2.3'))
+    await commitManagedRuntime(runtimeRoot, '1.2.3', expectations)
+    await expect(readManagedRuntime(runtimeRoot, expectations)).resolves.toEqual(managedRuntimePaths(runtimeRoot, '1.2.3'))
 
     const pointer = JSON.parse(await readFile(join(runtimeRoot, 'current.json'), 'utf8')) as Record<string, unknown>
-    expect(pointer).toMatchObject({ formatVersion: 1, packageName: DSH_RUNTIME_PACKAGE, version: '1.2.3' })
+    expect(pointer).toMatchObject({
+      formatVersion: 2,
+      packageName: DSH_RUNTIME_PACKAGE,
+      version: '1.2.3',
+      fuiVersion: expectations.fuiVersion,
+    })
     expect(Date.parse(String(pointer.installedAt))).not.toBeNaN()
+  })
+
+  it('accepts a newer official prerelease inside the desktop release range', async () => {
+    const runtimeRoot = await root()
+    await writeRuntime(runtimeRoot, '0.1.0-rc.6')
+    await expect(validateManagedRuntime(runtimeRoot, '0.1.0-rc.6', {
+      ...expectations,
+      compatibleDshRange: '>=0.1.0-rc.5 <0.2.0',
+    })).resolves.toEqual(managedRuntimePaths(runtimeRoot, '0.1.0-rc.6'))
   })
 
   it('treats an absent pointer as no managed runtime and preserves a quarantined pointer', async () => {
     const runtimeRoot = await root()
-    await expect(readManagedRuntime(runtimeRoot)).resolves.toBeUndefined()
+    await expect(readManagedRuntime(runtimeRoot, expectations)).resolves.toBeUndefined()
     await expect(quarantineManagedRuntimePointer(runtimeRoot)).resolves.toBeUndefined()
 
     await writeRuntime(runtimeRoot)
-    await commitManagedRuntime(runtimeRoot, '1.2.3')
+    await commitManagedRuntime(runtimeRoot, '1.2.3', expectations)
     const destination = await quarantineManagedRuntimePointer(runtimeRoot)
     expect(destination).toContain(join(runtimeRoot, 'failed', 'current-'))
-    await expect(readFile(destination!, 'utf8')).resolves.toContain('"version": "1.2.3"')
-    await expect(readManagedRuntime(runtimeRoot)).resolves.toBeUndefined()
+    await expect(readFile(destination!, 'utf8')).resolves.toContain('"fuiVersion": "7.0.0"')
+    await expect(readManagedRuntime(runtimeRoot, expectations)).resolves.toBeUndefined()
   })
 
-  it('rejects malformed versions, pointers, package identities, and incomplete entries', async () => {
+  it('rejects stale pointers, incompatible DSH, wrong overlay identities, and incomplete entries', async () => {
     const runtimeRoot = await root()
     expect(() => managedRuntimePaths(runtimeRoot, '../1.2.3')).toThrow('not valid semver')
-    await writeFile(join(runtimeRoot, 'current.json'), '{"formatVersion":2}\n')
-    await expect(readManagedRuntime(runtimeRoot)).rejects.toThrow('unsupported fields')
+    await writeFile(join(runtimeRoot, 'current.json'), '{"formatVersion":1}\n')
+    await expect(readManagedRuntime(runtimeRoot, expectations)).rejects.toThrow('unsupported fields')
 
     await writeRuntime(runtimeRoot)
+    await expect(validateManagedRuntime(runtimeRoot, '1.2.3', {
+      ...expectations,
+      compatibleDshRange: '>=2.0.0 <3.0.0',
+    })).rejects.toThrow('outside desktop compatibility')
+
     const paths = managedRuntimePaths(runtimeRoot, '1.2.3')
-    const cliManifest = join(paths.root, 'node_modules/@deepseek-ai/dsh/package.json')
-    await writeJson(cliManifest, { name: DSH_RUNTIME_PACKAGE, version: '1.2.4', dependencies: {} })
-    await expect(validateManagedRuntime(runtimeRoot, '1.2.3')).rejects.toThrow('package identity')
-
-    await writeRuntime(runtimeRoot)
-    await writeJson(cliManifest, { name: DSH_RUNTIME_PACKAGE, version: '1.2.3', dependencies: {} })
-    await expect(validateManagedRuntime(runtimeRoot, '1.2.3')).rejects.toThrow('does not declare')
+    const fuiManifest = join(paths.root, 'node_modules/@deepseek-ai/dsh-fui-app/package.json')
+    await writeJson(fuiManifest, { name: DSH_FUI_BUNDLE_PACKAGE, version: '7.0.1' })
+    await expect(validateManagedRuntime(runtimeRoot, '1.2.3', expectations)).rejects.toThrow('overlay identity')
 
     await writeRuntime(runtimeRoot)
     await rm(paths.frontendEntry)
-    await expect(validateManagedRuntime(runtimeRoot, '1.2.3')).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(validateManagedRuntime(runtimeRoot, '1.2.3', expectations)).rejects.toMatchObject({ code: 'ENOENT' })
   })
 
-  it('rejects a symlink in place of the version root', async () => {
+  it('rejects a pointer from another FUI release and a symlinked version root', async () => {
     const runtimeRoot = await root()
+    await writeRuntime(runtimeRoot)
+    await commitManagedRuntime(runtimeRoot, '1.2.3', expectations)
+    await expect(readManagedRuntime(runtimeRoot, {
+      ...expectations,
+      fuiVersion: '7.1.0',
+    })).rejects.toThrow('does not match application FUI')
+
+    const linkedRoot = await root()
     const target = await root()
-    const paths = managedRuntimePaths(runtimeRoot, '1.2.3')
+    const paths = managedRuntimePaths(linkedRoot, '1.2.3')
     await mkdir(dirname(paths.root), { recursive: true })
     await symlink(target, paths.root)
-    await expect(validateManagedRuntime(runtimeRoot, '1.2.3')).rejects.toThrow('not a real directory')
+    await expect(validateManagedRuntime(linkedRoot, '1.2.3', expectations)).rejects.toThrow('not a real directory')
   })
 })

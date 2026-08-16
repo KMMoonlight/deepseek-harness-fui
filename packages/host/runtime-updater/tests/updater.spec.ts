@@ -1,5 +1,5 @@
 import { PassThrough } from 'node:stream'
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
@@ -15,11 +15,28 @@ import type {
 import { remoteMethods } from '@deepseek-ai/dsh-typert-protocol'
 import RuntimeUpdaterGateway, { type Config } from '../src/index.ts'
 import {
+  DSH_DESKTOP_OVERLAY_PACKAGES,
   DSH_FUI_BUNDLE_PACKAGE,
   DSH_RUNTIME_PACKAGE,
-  DSH_WEB_FRONTEND_PACKAGE,
+  nodeModulesPackageRoot,
   readManagedRuntime,
+  type ManagedRuntimeExpectations,
 } from '../src/managed-runtime.ts'
+
+const expectations: ManagedRuntimeExpectations = {
+  fuiVersion: '7.0.0',
+  compatibleDshRange: '>=1.0.0 <2.0.0',
+}
+
+const overlayEntries: Readonly<Record<(typeof DSH_DESKTOP_OVERLAY_PACKAGES)[number], string>> = {
+  [DSH_FUI_BUNDLE_PACKAGE]: 'cordis.patch.yml',
+  '@deepseek-ai/dsh-client-ui-fui': 'lib/index.js',
+  '@deepseek-ai/dsh-client-ui-fui-layout': 'lib/client.js',
+  '@deepseek-ai/dsh-client-ui-fui-surface': 'lib/client.js',
+  '@deepseek-ai/dsh-client-ui-settings-runtime-updater': 'lib/client.js',
+  '@deepseek-ai/dsh-host-runtime-updater': 'lib/index.js',
+  '@deepseek-ai/dsh-web-frontend': 'dist/index.html',
+}
 
 interface FakeRun {
   readonly outcome?: { readonly exitCode: number | null; readonly signal: NodeJS.Signals | null }
@@ -112,43 +129,45 @@ async function writeJson(path: string, value: unknown): Promise<void> {
 }
 
 async function writeInstalledTree(root: string, version: string): Promise<void> {
-  const packageRoot = join(root, 'node_modules/@deepseek-ai')
-  await writeJson(join(packageRoot, 'dsh/package.json'), {
+  const packageRoot = nodeModulesPackageRoot(join(root, 'node_modules'), DSH_RUNTIME_PACKAGE)
+  await writeJson(join(packageRoot, 'package.json'), {
     name: DSH_RUNTIME_PACKAGE,
     version,
-    dependencies: { [DSH_FUI_BUNDLE_PACKAGE]: `^${version}` },
+    dependencies: {},
   })
-  await writeJson(join(packageRoot, 'dsh-fui-app/package.json'), {
-    name: DSH_FUI_BUNDLE_PACKAGE,
-    version,
-  })
-  await writeJson(join(packageRoot, 'dsh-web-frontend/package.json'), {
-    name: DSH_WEB_FRONTEND_PACKAGE,
-    version,
-  })
-  await mkdir(join(packageRoot, 'dsh/lib'), { recursive: true })
-  await mkdir(join(packageRoot, 'dsh-web-frontend/dist'), { recursive: true })
-  await writeFile(join(packageRoot, 'dsh/lib/bin.js'), '#!/usr/bin/env node\n')
-  await writeFile(join(packageRoot, 'dsh-web-frontend/dist/index.html'), '<!doctype html>\n')
+  await mkdir(join(packageRoot, 'lib'), { recursive: true })
+  await writeFile(join(packageRoot, 'lib/bin.js'), '#!/usr/bin/env node\n')
 }
 
-function manifest(version: string, compatible = true): Response {
-  return new Response(JSON.stringify({
-    version,
-    dependencies: compatible ? { [DSH_FUI_BUNDLE_PACKAGE]: `^${version}` } : {},
-  }), { status: 200, headers: { 'content-type': 'application/json' } })
+async function writeOverlayRoot(root: string, version = expectations.fuiVersion): Promise<void> {
+  for (const packageName of DSH_DESKTOP_OVERLAY_PACKAGES) {
+    const packageRoot = nodeModulesPackageRoot(root, packageName)
+    await writeJson(join(packageRoot, 'package.json'), { name: packageName, version })
+    const entry = join(packageRoot, overlayEntries[packageName])
+    await mkdir(dirname(entry), { recursive: true })
+    await writeFile(entry, packageName === '@deepseek-ai/dsh-web-frontend' ? '<!doctype html>\n' : '// fixture\n')
+  }
+}
+
+function manifest(version: string): Response {
+  return new Response(JSON.stringify({ version }), { status: 200, headers: { 'content-type': 'application/json' } })
 }
 
 async function harness(overrides: Partial<Config> = {}) {
   const runtimeRoot = await tempRoot()
   const pnpmEntry = join(runtimeRoot, 'pnpm.cjs')
+  const overlayRoot = join(runtimeRoot, 'app-overlay')
   await writeFile(pnpmEntry, '// fake pnpm\n')
+  await writeOverlayRoot(overlayRoot)
   const ctx = new Context()
   contexts.push(ctx)
   await ctx.plugin(FakeSubprocessRuntime)
   const fiber = ctx.plugin(RuntimeUpdaterGateway, {
     currentVersion: '1.0.0',
     currentSource: 'bundled',
+    fuiVersion: expectations.fuiVersion,
+    compatibleDshRange: expectations.compatibleDshRange,
+    overlayRoot,
     runtimeRoot,
     pnpmEntry,
     registryUrl: 'https://registry.npmjs.org',
@@ -162,7 +181,7 @@ async function harness(overrides: Partial<Config> = {}) {
   await fiber.await()
   const updater = ctx.get('runtimeUpdater') as RuntimeUpdaterGateway
   const subprocess = ctx.subprocess as FakeSubprocessRuntime
-  return { ctx, fiber, runtimeRoot, updater, subprocess }
+  return { ctx, fiber, runtimeRoot, overlayRoot, updater, subprocess }
 }
 
 describe('RuntimeUpdaterGateway', () => {
@@ -176,12 +195,14 @@ describe('RuntimeUpdaterGateway', () => {
     await expect(updater.describe({}, new AbortController().signal)).resolves.toEqual({
       packageName: DSH_RUNTIME_PACKAGE,
       currentVersion: '1.0.0',
+      fuiVersion: expectations.fuiVersion,
+      compatibleDshRange: expectations.compatibleDshRange,
       source: 'managed',
       distTag: 'next',
     })
   })
 
-  it('reports up-to-date and rejects a newer release without the FUI bundle', async () => {
+  it('reports up-to-date and rejects an official release outside the desktop compatibility range', async () => {
     const { updater, subprocess } = await harness()
     updater.internals.fetch = vi.fn().mockResolvedValueOnce(manifest('1.0.0'))
     await expect(updater.update({}, new AbortController().signal)).resolves.toEqual({
@@ -190,10 +211,10 @@ describe('RuntimeUpdaterGateway', () => {
         status: 'up-to-date', currentVersion: '1.0.0', latestVersion: '1.0.0', restartRequired: false,
       },
     })
-    updater.internals.fetch = vi.fn().mockResolvedValueOnce(manifest('1.1.0', false))
+    updater.internals.fetch = vi.fn().mockResolvedValueOnce(manifest('2.0.0'))
     await expect(updater.update({}, new AbortController().signal)).resolves.toMatchObject({
       ok: false,
-      error: { code: 'incompatible', latestVersion: '1.1.0' },
+      error: { code: 'incompatible', latestVersion: '2.0.0' },
     })
     expect(subprocess.specs).toHaveLength(0)
   })
@@ -205,7 +226,12 @@ describe('RuntimeUpdaterGateway', () => {
       stdout: 'installed\n',
       stderr: 'warning\n',
       lossy: true,
-      beforeDone: spec => writeInstalledTree(spec.cwd, '1.1.0'),
+      beforeDone: async (spec) => {
+        await expect(readFile(join(spec.cwd, 'pnpm-workspace.yaml'), 'utf8')).resolves.toContain(
+          "  '@google/genai': false",
+        )
+        await writeInstalledTree(spec.cwd, '1.1.0')
+      },
     }, { stdout: '1.1.0\n' })
 
     await expect(updater.update({}, new AbortController().signal)).resolves.toEqual({
@@ -220,6 +246,7 @@ describe('RuntimeUpdaterGateway', () => {
         expect.stringContaining('pnpm.cjs'),
         '--config.verify-deps-before-run=false',
         '--config.manage-package-manager-versions=false',
+        '--config.node-linker=hoisted',
         '--registry=https://registry.npmjs.org',
         'install',
         '--prod',
@@ -236,7 +263,18 @@ describe('RuntimeUpdaterGateway', () => {
       join(runtimeRoot, 'versions/1.1.0/node_modules/@deepseek-ai/dsh/lib/bin.js'),
       '--version',
     ])
-    await expect(readManagedRuntime(runtimeRoot)).resolves.toMatchObject({ version: '1.1.0' })
+    const managedRoot = join(runtimeRoot, 'versions/1.1.0/node_modules')
+    const dshManifest = JSON.parse(await readFile(
+      join(nodeModulesPackageRoot(managedRoot, DSH_RUNTIME_PACKAGE), 'package.json'),
+      'utf8',
+    )) as { dependencies: Record<string, string> }
+    expect(dshManifest.dependencies[DSH_FUI_BUNDLE_PACKAGE]).toBe(expectations.fuiVersion)
+    const fuiManifest = JSON.parse(await readFile(
+      join(nodeModulesPackageRoot(managedRoot, DSH_FUI_BUNDLE_PACKAGE), 'package.json'),
+      'utf8',
+    )) as { version: string }
+    expect(fuiManifest.version).toBe(expectations.fuiVersion)
+    await expect(readManagedRuntime(runtimeRoot, expectations)).resolves.toMatchObject({ version: '1.1.0' })
   })
 
   it('returns stable registry, package-manager, and validation failures', async () => {
@@ -280,7 +318,7 @@ describe('RuntimeUpdaterGateway', () => {
     await expect(smoke.updater.update({}, new AbortController().signal)).resolves.toMatchObject({
       ok: false, error: { code: 'validation-failed', latestVersion: '1.1.0' },
     })
-    await expect(readManagedRuntime(smoke.runtimeRoot)).resolves.toBeUndefined()
+    await expect(readManagedRuntime(smoke.runtimeRoot, expectations)).resolves.toBeUndefined()
   })
 
   it('reports check and install deadlines with stable failure codes', async () => {
@@ -350,9 +388,13 @@ describe('RuntimeUpdaterGateway', () => {
   it('fails load outside desktop and for unsafe deployment configuration', async () => {
     const runtimeRoot = await tempRoot()
     const pnpmEntry = join(runtimeRoot, 'pnpm.cjs')
+    const overlayRoot = join(runtimeRoot, 'app-overlay')
     await writeFile(pnpmEntry, '// fake\n')
+    await writeOverlayRoot(overlayRoot)
     const base: Config = {
-      currentVersion: '1.0.0', currentSource: 'bundled', runtimeRoot, pnpmEntry,
+      currentVersion: '1.0.0', currentSource: 'bundled',
+      fuiVersion: expectations.fuiVersion, compatibleDshRange: expectations.compatibleDshRange, overlayRoot,
+      runtimeRoot, pnpmEntry,
       registryUrl: 'https://registry.npmjs.org', distTag: 'latest',
       checkTimeoutMs: 1, installTimeoutMs: 1, maxOutputBytes: 1, graceMs: 1,
     }
@@ -367,6 +409,8 @@ describe('RuntimeUpdaterGateway', () => {
     expect(() => make(base)).toThrow('only load inside the desktop Host')
     process.env.DSH_DESKTOP = '1'
     expect(() => make({ ...base, currentVersion: 'latest' })).toThrow('valid exact semver')
+    expect(() => make({ ...base, compatibleDshRange: 'future' })).toThrow('valid semver')
+    expect(() => make({ ...base, overlayRoot: join(runtimeRoot, 'missing-overlay') })).toThrow('overlayRoot')
     expect(() => make({ ...base, runtimeRoot: 'relative' })).toThrow('runtimeRoot must be absolute')
     expect(() => make({ ...base, pnpmEntry: join(runtimeRoot, 'missing.cjs') })).toThrow('existing absolute file')
     expect(() => make({ ...base, registryUrl: 'http://registry.example.com' })).toThrow('HTTPS or loopback HTTP')

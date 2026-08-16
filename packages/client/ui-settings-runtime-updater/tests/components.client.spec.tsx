@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { RuntimeUpdateDescription, RuntimeUpdateResult } from '@deepseek-ai/dsh-api-remotes/client'
+import type { RuntimeUpdateDescription, RuntimeUpdateResult } from '@deepseek-ai/dsh-host-runtime-updater/types'
 import { RuntimeUpdaterRow } from '../src/client/RuntimeUpdaterRow.tsx'
 import type { RuntimeUpdaterRowInjected, RuntimeUpdaterRowProps } from '../src/client/RuntimeUpdaterRow.tsx'
 import { en, type RuntimeUpdaterLocaleKey } from '../src/client/locales.ts'
@@ -19,6 +19,8 @@ const t = ((key: RuntimeUpdaterLocaleKey, values?: Readonly<Record<string, unkno
 const description: RuntimeUpdateDescription = {
   packageName: '@deepseek-ai/dsh',
   currentVersion: '1.0.0',
+  fuiVersion: '7.0.0',
+  compatibleDshRange: '>=1.0.0 <2.0.0',
   source: 'bundled',
   distTag: 'latest',
 }
@@ -54,6 +56,8 @@ describe('RuntimeUpdaterRow', () => {
     expect(loadingButton.hasAttribute('disabled')).toBe(true)
     expect(screen.getByText(en.loading)).toBeTruthy()
     expect(await screen.findByText('1.0.0')).toBeTruthy()
+    expect(screen.getByText('7.0.0')).toBeTruthy()
+    expect(screen.getByText('>=1.0.0 <2.0.0')).toBeTruthy()
     expect(screen.getByText(en.bundled)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: en.update }))
@@ -97,7 +101,7 @@ describe('RuntimeUpdaterRow', () => {
     await screen.findByText('1.0.0')
 
     for (const [label, diagnostic] of [
-      [en.incompatible.replace('{version}', '1.2.0'), 'host detail'],
+      [en.incompatible.replace('{version}', '1.2.0').replace('{range}', description.compatibleDshRange), 'host detail'],
       [en.installFailed, 'stderr tail'],
       [en.validationFailed, 'stdout tail'],
       [en.checkFailed, 'host detail'],

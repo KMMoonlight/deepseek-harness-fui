@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type {
   RuntimeUpdateDescription,
   RuntimeUpdateResult,
-} from '@deepseek-ai/dsh-api-remotes/client'
+} from '@deepseek-ai/dsh-host-runtime-updater/types'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { RuntimeUpdaterLocaleKey } from './locales.ts'
 import css from './RuntimeUpdaterRow.module.css'
@@ -116,7 +116,7 @@ export function RuntimeUpdaterRow({ describe, update, t }: RuntimeUpdaterRowProp
 
   const failureText = state.status === 'failure'
     ? (state.code === 'incompatible' && state.version !== undefined
-      ? t('incompatible', { version: state.version })
+      ? t('incompatible', { version: state.version, range: state.description?.compatibleDshRange ?? '' })
       : t(FAILURE_KEYS[state.code]))
     : undefined
 
@@ -137,6 +137,10 @@ export function RuntimeUpdaterRow({ describe, update, t }: RuntimeUpdaterRowProp
         <dl className={css.version}>
           <dt>{t('currentVersion')}</dt>
           <dd><code>{description.currentVersion}</code><span>{t(description.source)}</span></dd>
+          <dt>{t('fuiVersion')}</dt>
+          <dd><code>{description.fuiVersion}</code></dd>
+          <dt>{t('compatibleDshRange')}</dt>
+          <dd><code>{description.compatibleDshRange}</code></dd>
         </dl>
       )}
       {state.status === 'up-to-date' ? <p className={css.success} role="status">{t('upToDate')}</p> : null}
