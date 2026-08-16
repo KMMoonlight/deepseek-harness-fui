@@ -24,8 +24,10 @@ describe.skipIf(!existsSync(builtWorker) || process.platform === 'win32')('built
       })
       child.on('message', resolve)
       child.on('error', reject)
-      child.on('exit', (code) => {
-        reject(new Error(`worker exited (${code}) before reporting`))
+      // 'close', not 'exit': only 'close' guarantees an in-flight IPC
+      // outcome message was delivered before declaring a silent exit.
+      child.on('close', (code) => {
+        reject(new Error(`worker exited (${String(code)}) before reporting`))
       })
     })
     expect(message.kind).toBe('error')

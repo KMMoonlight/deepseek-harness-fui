@@ -25,21 +25,29 @@ interface Koffi {
   register(fn: (...args: unknown[]) => unknown, type: unknown): unknown
   unregister(callback: unknown): void
   sizeof(type: string): number
-  view(ref: unknown, len: number): ArrayBuffer
 }
 
 /**
- * Read a NUL-terminated UTF-16 string at a native address. koffi's
- * `_Out_ void **` out-params surface a raw address, and
- * `koffi.decode(addr, 'str16')` would dereference it as a pointer — crash
- * on real Windows — so view the memory directly instead.
+ * Read a NUL-terminated UTF-16 string at a native address one code unit at a
+ * time. koffi's `_Out_ void **` out-params surface a raw address, so
+ * `koffi.decode(addr, 'str16')` would dereference it as a pointer, and a
+ * fixed-size `koffi.view` plus copy reads past the terminator — into pages
+ * the heap may not have mapped, crashing the worker with an access violation
+ * no JS `catch` can intercept. Per-unit `decode` stops at the NUL and never
+ * touches memory beyond it.
  */
 function readUtf16(koffi: Koffi, address: unknown): string {
-  const bytes = Buffer.from(koffi.view(address, 32768))
-  let end = 0
-  while (end + 1 < bytes.length && bytes[end] !== 0) end += 2
-  return bytes.toString('utf16le', 0, end)
+  const units: number[] = []
+  while (units.length < MAX_DISPLAY_NAME_UNITS) {
+    const unit = koffi.decode(address, units.length * 2, 'uint16') as number
+    if (unit === 0) return String.fromCharCode(...units)
+    units.push(unit)
+  }
+  throw new Error('IShellItem::GetDisplayName returned an unterminated string')
 }
+
+/** Shell display names stay under the Windows long-path ceiling; a read past it means the string was never terminated. */
+const MAX_DISPLAY_NAME_UNITS = 32768
 
 const COINIT_APARTMENTTHREADED = 0x2
 const CLSCTX_INPROC_SERVER = 0x1

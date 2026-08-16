@@ -30,6 +30,8 @@ interface ComWorld {
   /** Contexts `SetThreadDpiAwarenessContext` accepts; others return NULL. */
   supportedDpiContexts: number[]
   enumThrows: boolean
+  /** GetDisplayName yields a string with no NUL terminator anywhere. */
+  unterminated: boolean
   path: string
   titles: string[]
   options: number[]
@@ -46,6 +48,7 @@ function comWorld(overrides: Partial<ComWorld> = {}): ComWorld {
   return {
     coInitHr: 0, coCreateHr: 0, showHr: 0, getResultHr: 0, getDisplayNameHr: 0,
     hasThreadDpi: true, supportedDpiContexts: [-4], enumThrows: false,
+    unterminated: false,
     path: 'C:\\选中\\directory',
     titles: [], options: [], dpiContexts: [], freed: [], released: [], posted: [],
     registered: 0, unregistered: 0, uninitialized: 0,
@@ -127,14 +130,20 @@ function installFakeKoffi(world: ComWorld): void {
       proto: (declaration: string) => ({ declaration }),
       pointer: (type: unknown) => type,
       sizeof: (type: string) => { void type; return FAKE_POINTER_SIZE },
-      view: (value: unknown, len: number): ArrayBuffer => {
-        const bytes = Buffer.alloc(len)
-        bytes.write((value as FakePtr).text as string, 'utf16le')
-        return bytes.buffer
-      },
       register: (fn: (hwnd: unknown, lparam: unknown) => number) => { world.registered += 1; return { fn } },
       unregister: () => { world.unregistered += 1 },
-      decode: (value: unknown, offsetOrType: unknown): unknown => {
+      decode: (value: unknown, offsetOrType: unknown, type?: unknown): unknown => {
+        if (type === 'uint16') {
+          // readUtf16's per-code-unit read. The fake heap maps exactly the
+          // text plus its NUL terminator; reading past it throws the way an
+          // unmapped page faults, so a bulk-read regression fails here.
+          if (world.unterminated) return 0x58
+          const text = (value as FakePtr).text as string
+          const unitIndex = (offsetOrType as number) / 2
+          if (!Number.isInteger(unitIndex)) throw new Error(`unaligned utf16 read at ${offsetOrType}`)
+          if (unitIndex > text.length) throw new Error('read past the string terminator (unmapped page)')
+          return unitIndex === text.length ? 0 : text.charCodeAt(unitIndex)
+        }
         if (offsetOrType === 'str16') return (value as FakePtr).text
         if (typeof offsetOrType === 'number') {
           // Vtable slot read: offsets must be multiples of the fake width.
@@ -178,6 +187,24 @@ describe('loadWin32DialogBindings over the fake COM world', () => {
     expect(world.freed).toHaveLength(1)
     expect(world.released).toEqual(['item', 'dialog'])
     expect(world.uninitialized).toBe(1)
+  })
+
+  it('keeps code units whose UTF-16LE low byte is zero', async () => {
+    // 'Ā' (U+0100) encodes a zero low byte; a byte-wise NUL scan truncates
+    // the path there, and the fake heap faults on any read past the
+    // terminator, so this round-trip also pins the per-unit read bound.
+    const world = comWorld({ path: 'C:\\Ā\\leaf' })
+    installFakeKoffi(world)
+    const bindings = await (await loadBindingsModule()).loadWin32DialogBindings()
+    expect(runFolderDialog(bindings, 'Pick', vi.fn())).toBe('C:\\Ā\\leaf')
+  })
+
+  it('rejects an unterminated display name instead of reading on until a fault', async () => {
+    const world = comWorld({ unterminated: true })
+    installFakeKoffi(world)
+    const bindings = await (await loadBindingsModule()).loadWin32DialogBindings()
+    expect(() => runFolderDialog(bindings, 'Pick', vi.fn())).toThrow('IShellItem::GetDisplayName returned an unterminated string')
+    expect(world.released).toEqual(['item', 'dialog'])
   })
 
   it('maps dismissal and the S_FALSE CoInitializeEx', async () => {

@@ -69,15 +69,27 @@ describe('pickWin32Directory', () => {
 
     const silent = harness()
     const exiting = pickWin32Directory(live(), silent.internals)
-    silent.worker.emit('exit', 0)
-    await expect(exiting).rejects.toThrow('exited before reporting a result')
+    silent.worker.emit('close', 0, null)
+    await expect(exiting).rejects.toThrow('win32 folder dialog worker exited (code 0, signal null) before reporting a result')
   })
 
-  it('settles once: a late exit after the result is inert', async () => {
+  it('honors an outcome posted as the worker terminates, even when exit surfaces first', async () => {
+    // The real worker disconnects in its send-flush callback, so termination
+    // and the outcome message travel together; 'exit' may surface while the
+    // message is in flight, and only 'close' guarantees it landed.
+    const { worker, internals } = harness()
+    const failed = pickWin32Directory(live(), internals)
+    worker.post({ kind: 'error', message: 'koffi exploded' })
+    worker.emit('exit', 1, null)
+    worker.emit('close', 1, null)
+    await expect(failed).rejects.toThrow('win32 folder dialog failed: koffi exploded')
+  })
+
+  it('settles once: a late close after the result is inert', async () => {
     const { worker, internals } = harness()
     const picked = pickWin32Directory(live(), internals)
     worker.post({ kind: 'done', path: 'C:\\once' })
-    worker.emit('exit', 0)
+    worker.emit('close', 0, null)
     await expect(picked).resolves.toBe('C:\\once')
   })
 

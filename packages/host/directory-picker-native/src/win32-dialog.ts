@@ -13,12 +13,12 @@ import type { Win32DialogWorkerData, Win32DialogWorkerMessage } from './win32-di
 export interface Win32DialogWorkerLike {
   /**
    * Subscribe to a child-process event.
-   * @param event - `message`, `error`, or `exit`.
+   * @param event - `message`, `error`, or `close`.
    * @param listener - the event consumer.
    */
   on(event: 'message', listener: (message: Win32DialogWorkerMessage) => void): unknown
   on(event: 'error', listener: (error: Error) => void): unknown
-  on(event: 'exit', listener: (code: number) => void): unknown
+  on(event: 'close', listener: (code: number | null, signal: NodeJS.Signals | null) => void): unknown
   /**
    * Force-stop the child; the abort path's last resort when `WM_CLOSE`
    * never lands (e.g. the dialog window was never created).
@@ -150,9 +150,13 @@ export async function pickWin32Directory(
         reject(error)
       })
     })
-    worker.on('exit', () => {
+    // Termination alone is not the verdict: 'exit' can surface while the
+    // worker's outcome message is still in flight (the worker disconnects in
+    // its send-flush callback), so wait for 'close' — by then the IPC channel
+    // has drained and any posted outcome was delivered.
+    worker.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
       settle(() => {
-        reject(new Error('win32 folder dialog worker exited before reporting a result'))
+        reject(new Error(`win32 folder dialog worker exited (code ${String(code)}, signal ${String(signal)}) before reporting a result`))
       })
     })
   })

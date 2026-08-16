@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-16-win32-dialog-read-past-terminator.md
+2026-08-16-win32-dialog-read-past-terminator.md: f3df1ec470ee1c74888b36c6e20a43d5990a43b8
+2026-08-16-win32-dialog-read-past-terminator.zh.md: a58b838d633341eda4e98638b23d74ce36b85188
