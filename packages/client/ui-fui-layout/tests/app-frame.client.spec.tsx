@@ -150,7 +150,6 @@ describe('AppFrame', () => {
     expect(tracks(frame)).toEqual([280, 0])
     expect(getByRole('link', { name: '跳至主要内容' }).getAttribute('href')).toBe('#dsh-main-content')
     expect(getByText('智能体控制台')).toBeTruthy()
-    expect(getByText('DEEPSEEK HARNESS')).toBeTruthy()
   })
 
   it('renders the session pair with empty owner shares (sessionId is framework-standard)', () => {

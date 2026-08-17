@@ -235,12 +235,6 @@
   white-space: nowrap;
 }
 
-/* Fixed identity segments never shrink or wrap. The readout lives in
-   statusSlot (out of flow), so nothing here competes for space. */
-.statusBar > span:not(.statusSpacer) {
-  flex-shrink: 0;
-}
-
 /* Center-column readout band: absolutely stretched between the sidebar and
    details borders (inline left/right from the concession solve), so injected
    'shell.status' entries render centered on the composer axis and elide
@@ -255,16 +249,6 @@
   overflow: hidden;
 }
 
-.statusRule {
-  width: 28px;
-  height: 1px;
-  background: var(--fui-line-strong);
-}
-
-.statusSpacer {
-  flex: 1;
-}
-
 @media (max-width: 720px) {
   .frame {
     --fui-shell-command-inline: 8px;
@@ -275,9 +259,7 @@
   }
 
   .commandIdentity > :nth-child(2),
-  .commandIdentity > :nth-child(3),
-  .statusRule,
-  .statusBar > :nth-child(3) {
+  .commandIdentity > :nth-child(3) {
     display: none;
   }
 }

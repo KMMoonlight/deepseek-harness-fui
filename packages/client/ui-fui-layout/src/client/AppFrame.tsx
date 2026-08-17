@@ -206,9 +206,6 @@ export function AppFrame({
         {renderSlot('shell.overlay', {})}
       </div>
       <footer className={css.statusBar}>
-        <span>{t('status.profile')}</span>
-        <span className={css.statusRule} aria-hidden="true" />
-        <span>{t('status.workspace')}</span>
         {/* The readout band tracks the center column's exact extent, so the
             stats line stays on the composer axis no matter how the sidebar /
             details columns are dragged; it elides inside the band and never
@@ -216,8 +213,6 @@ export function AppFrame({
         <div className={css.statusSlot} style={{ left: cols.sidebar, right: cols.details }}>
           {renderSlot('shell.status', {})}
         </div>
-        <span className={css.statusSpacer} />
-        <span>DEEPSEEK HARNESS</span>
       </footer>
       <ScreenEffects />
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
