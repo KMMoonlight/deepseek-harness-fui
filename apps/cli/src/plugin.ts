@@ -6,8 +6,11 @@
  * resolving to a package that declares `dsh.bundle` joins the layer stack; a
  * removed or bundle-less dependency leaves it). Reconciling by installed
  * state, not by dependency diff, means `update` activates a package that
- * gained its `dsh.bundle` declaration in a newer version. A failed attempt
- * whose output names build scripts pnpm ≥11 refused to run is retried after
+ * gained its `dsh.bundle` declaration in a newer version. GitHub repository
+ * specs are pinned to a commit over the GitHub API first: pnpm would resolve
+ * them with `git ls-remote`, which a packaged desktop cannot assume (a fresh
+ * system only stubs git behind a Command Line Tools prompt). A failed attempt
+ * whose output names build scripts pnpm refused to run is retried after
  * merging those keys into the profile's `allowBuilds` — submitting the
  * install is already the user's trust decision, so the package manager's
  * per-package allowlist must not re-block it; only genuine failures
@@ -117,6 +120,74 @@ function anchorPathSpec(argument: string, cwd: string): string {
   return `${prefix}${resolve(cwd, match.groups.path)}`
 }
 
+/** A GitHub repository reference parsed from one install spec. */
+interface GithubSpec {
+  readonly owner: string
+  readonly repo: string
+  /** Branch, tag, or commit named after `#`; undefined names the default branch. */
+  readonly ref?: string
+}
+
+const GITHUB_SPEC_PATH = /^(?<owner>[\w.-]+)\/(?<repo>[\w.-]+?)(?:\.git)?(?:#(?<ref>.+))?$/
+
+/**
+ * Parse the GitHub spec forms `dsh plugin` forwards: an https repository URL
+ * (`.git` suffix and `#ref` fragment allowed) or the `github:` shorthand.
+ * Other argument shapes — registry names, npm tarballs, codeload URLs, git
+ * URLs — are left for pnpm.
+ * @param argument - one pnpm argument, verbatim from argv.
+ * @returns the parsed reference, or undefined for any non-GitHub form.
+ */
+function parseGithubSpec(argument: string): GithubSpec | undefined {
+  let path: string
+  if (argument.startsWith('github:')) {
+    path = argument.slice('github:'.length)
+  } else {
+    const prefix = /^https?:\/\/(?:www\.)?github\.com\//.exec(argument)
+    if (prefix === null) return undefined
+    path = argument.slice(prefix[0].length)
+  }
+  const match = GITHUB_SPEC_PATH.exec(path)
+  const groups = match?.groups
+  if (groups === undefined) return undefined
+  const { owner, repo, ref } = groups
+  if (owner === undefined || repo === undefined) return undefined
+  return { owner, repo, ...(ref === undefined ? {} : { ref }) }
+}
+
+/**
+ * Pin one GitHub reference to its commit and return the codeload tarball URL.
+ * pnpm resolves https GitHub specs through `git ls-remote`; a packaged
+ * desktop cannot assume that binary, so the reference is resolved here over
+ * the GitHub API (an exact 40-hex ref skips the round-trip). `GH_TOKEN`, when
+ * set, rides along to lift the anonymous rate limit.
+ * @param spec - parsed GitHub reference.
+ * @returns the pinned tarball URL, or undefined when the API does not answer.
+ */
+async function resolveGithubTarball(spec: GithubSpec): Promise<string | undefined> {
+  if (spec.ref !== undefined && /^[0-9a-f]{40}$/i.test(spec.ref)) {
+    return `https://codeload.github.com/${spec.owner}/${spec.repo}/tar.gz/${spec.ref}`
+  }
+  const headers: Record<string, string> = { 'user-agent': NAME, accept: 'application/vnd.github+json' }
+  if (process.env.GH_TOKEN !== undefined) headers.authorization = `Bearer ${process.env.GH_TOKEN}`
+  try {
+    const ref = spec.ref === undefined ? 'HEAD' : encodeURIComponent(spec.ref)
+    const response = await fetch(
+      `https://api.github.com/repos/${spec.owner}/${spec.repo}/commits/${ref}`,
+      { headers, signal: AbortSignal.timeout(10_000) },
+    )
+    if (!response.ok) return undefined
+    const body = await response.json() as { sha?: unknown }
+    return typeof body.sha === 'string' && /^[0-9a-f]{40}$/i.test(body.sha)
+      ? `https://codeload.github.com/${spec.owner}/${spec.repo}/tar.gz/${body.sha}`
+      : undefined
+  } catch {
+    // Network and parse failures fall back to the original spec; pnpm's own
+    // error then names the real cause.
+    return undefined
+  }
+}
+
 /** One captured pnpm invocation: the exit code plus everything pnpm printed. */
 interface PnpmAttempt {
   readonly exitCode: number
@@ -124,11 +195,14 @@ interface PnpmAttempt {
 }
 
 /**
- * Build-script keys pnpm ≥11 refused to run, parsed from one failed attempt's
- * output. pnpm reports two shapes: ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED prints
- * an example `allowBuilds:` block naming the git package by its resolved
- * tarball URL, and ERR_PNPM_IGNORED_BUILDS lists registry packages as a
- * comma-separated `name@version` line.
+ * Build-script keys pnpm refused to run, parsed from one failed attempt's
+ * output. pnpm reports three shapes: pnpm ≥11 prints an example
+ * `allowBuilds:` block naming the git package by its resolved tarball URL
+ * (ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED) or lists registry packages as a
+ * comma-separated `name@version` line (ERR_PNPM_IGNORED_BUILDS), and pnpm 10
+ * prints an `onlyBuiltDependencies:` example list for the git case. Keys are
+ * copied in the form the printing pnpm accepts them back — the formats are
+ * not interchangeable across versions.
  * @param output - combined stdout and stderr of one pnpm run.
  * @returns candidate `allowBuilds` keys, deduplicated in first-seen order.
  */
@@ -139,6 +213,14 @@ function blockedBuildKeys(output: string): string[] {
     if (line.trim() !== 'allowBuilds:') continue
     for (const entry of lines.slice(index + 1)) {
       const key = /^ {2}(?<key>\S.*?): true\s*$/.exec(entry)?.groups?.key
+      if (key === undefined) break
+      keys.push(key)
+    }
+  }
+  for (const [index, line] of lines.entries()) {
+    if (line.trim() !== 'onlyBuiltDependencies:') continue
+    for (const entry of lines.slice(index + 1)) {
+      const key = /^\s*-\s*"?(?<key>[^"\s]+)"?\s*$/.exec(entry)?.groups?.key
       if (key === undefined) break
       keys.push(key)
     }
@@ -193,7 +275,7 @@ function allowBuilds(dir: string, keys: readonly string[]): string[] {
  * @param args - pnpm arguments with relative path specs anchored to the invoking directory.
  * @returns the pnpm exit code.
  */
-export function runPlugin(profile: string, args: readonly string[]): number {
+export async function runPlugin(profile: string, args: readonly string[]): Promise<number> {
   const pnpmEntry = process.env.DSH_PNPM_ENTRY
   if (pnpmEntry !== undefined && (!isAbsolute(pnpmEntry) || !existsSync(pnpmEntry))) {
     process.stderr.write(`${NAME}: DSH_PNPM_ENTRY must name an existing absolute pnpm JavaScript entry\n`)
@@ -208,7 +290,20 @@ export function runPlugin(profile: string, args: readonly string[]): number {
   const command = pnpmEntry === undefined ? 'pnpm' : process.execPath
   const commandArgs = [
     ...(pnpmEntry === undefined ? [] : [pnpmEntry]),
-    ...args.map(argument => anchorPathSpec(argument, process.cwd())),
+    ...(await Promise.all(args.map(async (argument) => {
+      const anchored = anchorPathSpec(argument, process.cwd())
+      const spec = parseGithubSpec(anchored)
+      if (spec === undefined) return anchored
+      const tarball = await resolveGithubTarball(spec)
+      if (tarball === undefined) {
+        process.stderr.write(
+          `${NAME}: could not pin ${anchored} to a commit over the GitHub API — `
+          + 'passing it to pnpm unchanged\n',
+        )
+        return anchored
+      }
+      return tarball
+    }))),
   ]
   // Windows resolves ordinary pnpm installs through a .cmd shim, which
   // spawn() refuses without a shell since the CVE-2024-27980 hardening. A
@@ -253,7 +348,10 @@ export function runPlugin(profile: string, args: readonly string[]): number {
     // pnpm's own diagnostics name pnpm-workspace.yaml without saying WHICH
     // one; the profile owns it.
     process.stderr.write(`${NAME}: pnpm failed in profile directory ${dir}\n`)
-    if (args.some(argument => /^git\+|^github:|\.git(?:#|$)|^https?:\/\/(?:www\.)?github\.com\/[\w.-]+\/[\w.-]+/.test(argument))) {
+    const gitSpec = /^git\+|^github:|\.git(?:#|$)/
+    const githubUrl = /^https?:\/\/(?:www\.)?github\.com\/[\w.-]+\/[\w.-]+/
+    const codeloadUrl = /^https?:\/\/codeload\.github\.com\/[\w.-]+\/[\w.-]+\/tar\.gz\/[0-9a-f]{40}/i
+    if (args.some(argument => gitSpec.test(argument) || githubUrl.test(argument) || codeloadUrl.test(argument))) {
       process.stderr.write(
         `${NAME}: if pnpm blocked the git plugin's prepare script above, `
         + `add the exact key it printed under allowBuilds in ${join(dir, 'pnpm-workspace.yaml')}, then re-run\n`,

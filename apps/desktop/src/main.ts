@@ -1,7 +1,7 @@
 /** Electron application shell for the loopback DeepSeek FUI Host. */
 
 import { existsSync, readFileSync } from 'node:fs'
-import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { delimiter, dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
 import { quarantineManagedRuntimePointer } from '@deepseek-ai/dsh-host-runtime-updater/managed-runtime'
@@ -18,6 +18,7 @@ import {
   type MenuItemConstructorOptions,
 } from 'electron'
 import { createHostSupervisor, spawnDshFui, type HostSupervisor } from './host-supervisor.ts'
+import { writePnpmShims } from './pnpm-shims.ts'
 import { selectRuntimeCandidates } from './runtime-selection.ts'
 import { createDesktopLifecycle, type DesktopLifecycle } from './window-lifecycle.ts'
 
@@ -123,6 +124,19 @@ async function hostCandidates(): Promise<readonly HostPaths[]> {
   const bundled = bundledHostPaths()
   if (!app.isPackaged) return [bundled]
   return selectRuntimeCandidates(bundled)
+}
+
+/**
+ * The directory that must lead the packaged Host's PATH so pnpm lifecycle
+ * scripts resolve `node` and `pnpm`: wrappers over the app binary itself,
+ * regenerated every launch to track an updated application path. Dev runs
+ * forward the developer's own toolchain and add nothing.
+ */
+function pluginInstallPathPrefix(paths: HostPaths): string | undefined {
+  if (!paths.electronRunAsNode || paths.pnpmEntry === undefined) return undefined
+  const dir = dshHomePath('desktop-tools')
+  writePnpmShims(dir, { nodeExecutable: paths.nodeExecutable, pnpmEntry: paths.pnpmEntry })
+  return dir
 }
 
 function assertHostArtifacts(paths: HostPaths): void {
@@ -285,11 +299,15 @@ async function boot(): Promise<void> {
   for (const paths of candidates) {
     try {
       assertHostArtifacts(paths)
+      const pathPrefix = pluginInstallPathPrefix(paths)
       const candidate = createHostSupervisor({
         spawnHost: () => spawnDshFui({
           ...paths,
           env: {
             ...process.env,
+            ...(pathPrefix === undefined
+              ? {}
+              : { PATH: [pathPrefix, process.env.PATH ?? ''].filter(part => part !== '').join(delimiter) }),
             DSH_DESKTOP: '1',
             DSH_DESKTOP_CLI_ENTRY: paths.cliEntry,
             DSH_DESKTOP_RUNTIME_ROOT: paths.runtimeRoot,

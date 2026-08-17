@@ -15,6 +15,8 @@
 
 运行命令时所在的目录将作为默认 workspace 根目录。`web` 和 `headless` profile 在首次使用时会从随附模板自动初始化；其他任何 profile 都必须通过 `dsh plugin` 创建。
 
+`dsh plugin` 会把参数转发给 profile 目录内的 pnpm。GitHub 仓库规格（`https://github.com/<owner>/<repo>` 或 `github:<owner>/<repo>`）会经 GitHub API 钉到具体 commit，并改写为钉死 commit 的 codeload tarball，因此从 GitHub 安装不需要本机 `git`；pnpm 拒绝执行的构建脚本会被自动写入该 profile 的 `allowBuilds` 并重试安装。
+
 ## 应用参数
 
 启动器只解析自身的 flag，并将其后的所有内容交给已启动的 profile；注入该 profile 的任意应用插件都可以解析这份共享的不可变快照（[`dsh-cmdline`](../../packages/boot/cmdline/README.md)）。因此，启动器的 flag 必须写在最前面；启动器无法识别的第一个 token 标志着应用参数的开始：

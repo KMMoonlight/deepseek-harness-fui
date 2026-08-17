@@ -15,6 +15,8 @@ The `dsh` command is the product launcher for profiles: ordered stacks of plugin
 
 The invoking directory is the default workspace root. The `web` and `headless` profiles auto-initialize on first use from shipped templates; any other profile must be created through `dsh plugin`.
 
+`dsh plugin` forwards the arguments to pnpm inside the profile directory. GitHub repository specs (`https://github.com/<owner>/<repo>` or `github:<owner>/<repo>`) are pinned to a commit over the GitHub API and rewritten to pinned codeload tarballs, so installing from GitHub does not require a local `git`; build scripts pnpm refuses to run are added to the profile's `allowBuilds` automatically and the install is retried.
+
 ## App arguments
 
 The launcher parses only its own flags and hands everything after them to the booted profile, where any injected app plugin may parse the shared immutable snapshot ([`dsh-cmdline`](../../packages/boot/cmdline/README.md)). Launcher flags therefore come first, and the first token the launcher does not recognize starts the app's arguments:

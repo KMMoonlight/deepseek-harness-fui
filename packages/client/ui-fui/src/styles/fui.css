@@ -14,11 +14,11 @@
 [data-fui-theme='cyan'] {
   /* 底色 */
   --fui-bg: #060c18; /* 深海军蓝 */
-  --fui-panel-bg: rgba(10, 20, 38, 0.85); /* 极暗蓝半透明面板填充 */
+  --fui-panel-bg: rgba(14, 26, 48, 0.92); /* 极暗蓝半透明面板填充 */
   /* 不透明面板底色 = panel-bg 合成于 fui-bg 之上。
      浮层(下拉/弹窗/通知)与多层嵌套结构必须用实心色,
      禁止把半透明 panel-bg 叠在其他颜色层上(会透出下层颜色造成偏色) */
-  --fui-panel-solid: #091324;
+  --fui-panel-solid: #0c1a30;
 
   /* 状态色 */
   --fui-primary: #2fe0a8; /* 青绿:高亮 / 选中 / 进度块 */
@@ -27,46 +27,50 @@
   --fui-ok: #3ddc84; /* 绿:状态良好 */
   --fui-danger: #ff5252; /* 红 */
 
-  /* 描边 / 文字(钢蓝系) */
-  --fui-line: rgba(63, 143, 196, 0.45);
-  --fui-line-strong: rgba(63, 143, 196, 0.85);
+  /* 描边 / 文字(钢蓝系)。
+     可读性底线:结构线与次要文字的透明度不得低于当前档位,
+     保证普通显示器上文字、图标与组件描边清晰可辨 */
+  --fui-line: rgba(63, 143, 196, 0.62);
+  --fui-line-strong: rgba(63, 143, 196, 0.95);
   /* 同色低透明衍生态:hover 填充、未选中进度格、图表网格线等。
      组件一律引用这组变量,禁止在组件里写 rgba 字面量 */
-  --fui-line-ghost: rgba(63, 143, 196, 0.08); /* line 8%:极淡 hover 填充 */
-  --fui-line-faint: rgba(63, 143, 196, 0.12); /* line 12%:网格线 / 未选中填充 */
-  --fui-line-soft: rgba(63, 143, 196, 0.18); /* line 18%:轨道 / 未选中描边 */
-  --fui-text: #a5d3e2; /* 浅钢蓝 */
-  --fui-text-dim: rgba(165, 211, 226, 0.45);
+  --fui-line-ghost: rgba(63, 143, 196, 0.1); /* line 10%:极淡 hover 填充 */
+  --fui-line-faint: rgba(63, 143, 196, 0.16); /* line 16%:网格线 / 未选中填充 */
+  --fui-line-soft: rgba(63, 143, 196, 0.26); /* line 26%:轨道 / 未选中描边 */
+  --fui-text: #c2e8f5; /* 浅钢蓝 */
+  --fui-text-dim: rgba(194, 232, 245, 0.72);
+  /* 未定义会令引用处回退为继承色,定义后与 dim 同档,维持两级文字层次 */
+  --fui-text-muted: var(--fui-text-dim);
 
   /* ---------------------------------------------------------------- */
   /* 语义色衍生态                                                      */
   /*                                                                   */
   /* 每个 tone 三档,组件按 tone 拼 var(--fui-<tone>-soft) 等使用:     */
-  /*   -soft         8%   同色填充(hover / 徽标底 / 高亮行)          */
-  /*   -line        55%   常态描边                                     */
-  /*   -line-strong 90%   hover 描边                                   */
+  /*   -soft         12%  同色填充(hover / 徽标底 / 高亮行)          */
+  /*   -line        68%   常态描边                                     */
+  /*   -line-strong 95%   hover 描边                                   */
   /* 新增主题时整组覆盖即可,组件无需改动 —— 这是"组件里禁止出现       */
   /* rgba 字面量"这条约定的落点。                                      */
   /* ---------------------------------------------------------------- */
-  --fui-primary-soft: rgba(47, 224, 168, 0.08);
-  --fui-primary-line: rgba(47, 224, 168, 0.55);
-  --fui-primary-line-strong: rgba(47, 224, 168, 0.9);
+  --fui-primary-soft: rgba(47, 224, 168, 0.12);
+  --fui-primary-line: rgba(47, 224, 168, 0.68);
+  --fui-primary-line-strong: rgba(47, 224, 168, 0.95);
 
-  --fui-ok-soft: rgba(61, 220, 132, 0.08);
-  --fui-ok-line: rgba(61, 220, 132, 0.55);
-  --fui-ok-line-strong: rgba(61, 220, 132, 0.9);
+  --fui-ok-soft: rgba(61, 220, 132, 0.12);
+  --fui-ok-line: rgba(61, 220, 132, 0.68);
+  --fui-ok-line-strong: rgba(61, 220, 132, 0.95);
 
-  --fui-warn-soft: rgba(232, 163, 61, 0.08);
-  --fui-warn-line: rgba(232, 163, 61, 0.55);
-  --fui-warn-line-strong: rgba(232, 163, 61, 0.9);
+  --fui-warn-soft: rgba(232, 163, 61, 0.12);
+  --fui-warn-line: rgba(232, 163, 61, 0.68);
+  --fui-warn-line-strong: rgba(232, 163, 61, 0.95);
 
-  --fui-accent-soft: rgba(225, 79, 140, 0.08);
-  --fui-accent-line: rgba(225, 79, 140, 0.55);
-  --fui-accent-line-strong: rgba(225, 79, 140, 0.9);
+  --fui-accent-soft: rgba(225, 79, 140, 0.12);
+  --fui-accent-line: rgba(225, 79, 140, 0.68);
+  --fui-accent-line-strong: rgba(225, 79, 140, 0.95);
 
-  --fui-danger-soft: rgba(255, 82, 82, 0.08);
-  --fui-danger-line: rgba(255, 82, 82, 0.55);
-  --fui-danger-line-strong: rgba(255, 82, 82, 0.9);
+  --fui-danger-soft: rgba(255, 82, 82, 0.12);
+  --fui-danger-line: rgba(255, 82, 82, 0.68);
+  --fui-danger-line-strong: rgba(255, 82, 82, 0.95);
 
   /* neutral tone 复用钢蓝系,补 -soft/-line 别名让组件能统一按 tone 拼 */
   --fui-neutral-soft: var(--fui-line-ghost);

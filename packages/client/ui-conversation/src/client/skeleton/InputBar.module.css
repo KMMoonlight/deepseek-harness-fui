@@ -545,7 +545,10 @@
 }
 
 :global(body[data-fui-surface]) .row {
-  padding: 2px 7px 6px;
+  /* 6px top pad keeps the controls clear of the dashed divider: the stock
+     -2px send-button shift is cancelled on FUI (below), so this pad alone
+     owns the divider-to-button gap. */
+  padding: 6px 7px 6px;
   border-top: 1px dashed var(--fui-line);
 }
 
@@ -590,6 +593,9 @@
   background: var(--fui-primary);
   color: var(--fui-bg);
   transition: none;
+  /* Cancel the stock 2px upward shift: with the dashed row divider the circle
+     would sit on the line. The press transform below owns the only offset. */
+  transform: none;
 }
 
 :global(body[data-fui-surface]) .primary:hover:not(:disabled) {
@@ -598,7 +604,7 @@
 
 :global(body[data-fui-surface]) .primary:active:not(:disabled),
 :global(body[data-fui-surface]) .add:active:not(:disabled) {
-  transform: translate(1px, -1px);
+  transform: translate(1px, 1px);
 }
 
 :global(body[data-fui-surface]) .pending {

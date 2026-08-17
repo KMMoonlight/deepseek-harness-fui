@@ -63,7 +63,12 @@ describe('initProfile', () => {
     const manifest = readProfileManifest('t', dir)
     expect(manifest.dsh?.profile?.bundles).toEqual(['@deepseek-ai/dsh-base'])
     expect(readFileSync(join(dir, PROFILE_PATCH_FILENAME), 'utf8')).toContain('[]')
-    expect(readFileSync(join(dir, 'pnpm-workspace.yaml'), 'utf8')).toContain('nodeLinker: hoisted')
+    const workspace = readFileSync(join(dir, 'pnpm-workspace.yaml'), 'utf8')
+    expect(workspace).toContain('nodeLinker: hoisted')
+    // Profile installs are the user's trust decision: no 24h release-age gate,
+    // and pnpm's virtual-store migration must not prompt under a non-TTY spawn.
+    expect(workspace).toContain('minimumReleaseAge: 0')
+    expect(workspace).toContain('confirmModulesPurge: false')
     // Re-init keeps user edits.
     writeFileSync(join(dir, PROFILE_PATCH_FILENAME), '- id: x\n  config: {}\n')
     initProfile(dir, ['other'])

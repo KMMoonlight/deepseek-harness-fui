@@ -391,9 +391,11 @@
 
 :global(body[data-fui-surface]) .sessionRow.selected,
 :global(body[data-fui-surface]) .searchResultRow.selected {
-  color: var(--fui-bg);
+  /* Outlined selection, not the inverted solid: a full-strength primary
+     border over a transparent fill, with the row text in primary. */
+  color: var(--fui-primary);
   border-color: var(--fui-primary);
-  background: var(--fui-primary);
+  background: transparent;
 }
 
 :global(body[data-fui-surface]) .sessionRow.selected .slot,

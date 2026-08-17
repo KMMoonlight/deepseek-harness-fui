@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-14-fui-runtime-client-surface.md
-2026-08-14-fui-runtime-client-surface.md: 06e2034a9f5517f59c9b66da6abaa510ac867a22
-2026-08-14-fui-runtime-client-surface.zh.md: f6b6482afaec75d45aa89d488069a2a2cc5b9d8d
+2026-08-14-fui-runtime-client-surface.md: c3b474c83e812ae384b3c4346d24b2e36d365b16
+2026-08-14-fui-runtime-client-surface.zh.md: fde72fbcb0eee798e183a5d69a8e07917fe97f69

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-17-hermetic-desktop-plugin-installs.md
+2026-08-17-hermetic-desktop-plugin-installs.md: b9f40989921345e1b8d4fd7b93f27d899d6b8f52
+2026-08-17-hermetic-desktop-plugin-installs.zh.md: 79c304f1403659bffca5ba0a0827c703c9166e3a

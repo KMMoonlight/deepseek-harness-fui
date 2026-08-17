@@ -14,7 +14,9 @@ FUI profile 修改了原应用的配色 token，并用一个几乎相同的 fork
 
 `@deepseek-ai/dsh-client-ui-fui` 是浏览器平台模块。[`PLATFORM_MODULES`](../../../../packages/client/web/README.md) 同时驱动静态种子表和客户端组合包 external，因此运行时展示 plugin 会导入应用拥有的同一个 f-ui 与 React 实例。FUI 布局从该模块导入 `Badge` 和 `ScreenEffects`，不会把它们再次打包。
 
-[`ui-fui-layout`](../../../../packages/client/ui-fui-layout/README.md) 根节点拥有上部命令栏、底部界面状态栏、f-ui 网格、屏幕效果和窄窗口精简规则。它保留现有 slot 树、列宽解析器、拖动行为、详情生命周期和主题展示转换器。功能包保留原行为，并通过限定在 `body[data-fui-surface]` 下的规则提供 FUI 密度、方形控件、反色选择状态与终端字体。这些规则覆盖设置外壳及其通用、模型、Agent 预设、可配置插件和插件清单页面，也覆盖主要 Workspace。原 Web profile 不设置该属性，因此保留原有几何。
+[`ui-fui-layout`](../../../../packages/client/ui-fui-layout/README.md) 根节点拥有上部命令栏、底部界面状态栏、f-ui 网格、屏幕效果和窄窗口精简规则。它保留现有 slot 树、列宽解析器、拖动行为、详情生命周期和主题展示转换器。功能包保留原行为，并通过限定在 `body[data-fui-surface]` 下的规则提供 FUI 密度、方形控件、会话行描边选中态与终端字体。这些规则覆盖设置外壳及其通用、模型、Agent 预设、可配置插件和插件清单页面，也覆盖主要 Workspace。原 Web profile 不设置该属性，因此保留原有几何。
+
+配色设有可读性底线：弱化与次要文字保持 72% 钢蓝透明度，结构线 62%，面板表面比页面底色高一级，因为原来的 45% 弱化色在普通显示器上难以辨认。在 FUI 界面下，composer 的虚线行分隔线与发送控件保持 6px 净距——原胶囊形态的上移偏移在此被取消。
 
 Web 应用拥有唯一一份 Tailwind utility 构建以及 Space Mono 400 和 700 资源。根节点外的临时探针已经移除；所有可见 f-ui 组件都属于常规运行时外壳。
 

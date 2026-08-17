@@ -135,12 +135,20 @@ const PROFILE_PATCH_TEMPLATE = `# Your patch layer for this dsh profile, applied
 // missing peers (cordis and friends) fall through to the healed
 // profiles/node_modules installation fallback, so every plugin shares the
 // installation's single cordis instance instead of a duplicate. pnpm ≥10
-// reads its settings from pnpm-workspace.yaml, not .npmrc.
+// reads its settings from pnpm-workspace.yaml, not .npmrc. minimumReleaseAge
+// is disabled because the profile is the user's own trust boundary: submitting
+// the install is already the trust decision, and pnpm 11's 24-hour default
+// would refuse plugins whose dependency closure includes packages published
+// within a day. confirmModulesPurge keeps pnpm's virtual-store migration
+// (after a pnpm major upgrade) from prompting, which would hang a non-TTY
+// install spawned by a packaged desktop app.
 const PROFILE_PNPM_WORKSPACE = `packages:
   - .
 
 nodeLinker: hoisted
 autoInstallPeers: false
+minimumReleaseAge: 0
+confirmModulesPurge: false
 `
 
 /**
